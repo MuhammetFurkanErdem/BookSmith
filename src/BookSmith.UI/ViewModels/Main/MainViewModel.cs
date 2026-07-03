@@ -8,6 +8,7 @@ namespace BookSmith.UI.ViewModels.Main;
 public class MainViewModel : ViewModelBase
 {
     private readonly IPdfReader _pdfReader;
+    private readonly ITextCleaner _textCleaner;
 
     private string _filePath = string.Empty;
     private bool _removeHeaders = true;
@@ -128,9 +129,10 @@ public class MainViewModel : ViewModelBase
     public ICommand BrowseCommand { get; }
     public ICommand StartCleaningCommand { get; }
 
-    public MainViewModel(IPdfReader pdfReader)
+    public MainViewModel(IPdfReader pdfReader, ITextCleaner textCleaner)
     {
         _pdfReader = pdfReader;
+        _textCleaner = textCleaner;
         BrowseCommand = new RelayCommand(OnBrowse);
         StartCleaningCommand = new RelayCommand(OnStartCleaning, CanStartCleaning);
     }

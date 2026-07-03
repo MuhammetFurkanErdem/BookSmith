@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using BookSmith.Core.Interfaces;
 using BookSmith.Services.Pdf;
+using BookSmith.Services.Cleaning;
 using BookSmith.UI.ViewModels.Main;
 using BookSmith.UI.Shell;
 
@@ -22,6 +23,7 @@ public partial class App : Application
             {
                 // Register Core/Service layers
                 services.AddSingleton<IPdfReader, PdfPigReader>();
+                services.AddSingleton<ITextCleaner, BasicTextCleaner>();
 
                 // Register UI layers (ViewModels and Views)
                 services.AddSingleton<MainViewModel>();
