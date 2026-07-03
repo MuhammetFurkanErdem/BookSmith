@@ -130,6 +130,45 @@
                         <TextBlock Text="{Binding PageCount, StringFormat={}{0} pages}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
                     </StackPanel>
                 </Grid>
+
+                <!-- Separator 2 -->
+                <Border x:Name="PreviewSeparatorBorder" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,16,0,12">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFileSelected}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
+
+                <!-- Preview StackPanel -->
+                <StackPanel x:Name="PreviewStackPanel">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFileSelected}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="First Page Preview" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding PreviewText, Mode=OneWay}" 
+                             IsReadOnly="True" 
+                             Height="120" 
+                             TextWrapping="Wrap" 
+                             AcceptsReturn="True" 
+                             VerticalScrollBarVisibility="Auto" 
+                             HorizontalScrollBarVisibility="Disabled"
+                             Background="#121215"
+                             BorderBrush="{StaticResource BorderBrush}"
+                             Padding="8" />
+                </StackPanel>
             </StackPanel>
         </Border>
 

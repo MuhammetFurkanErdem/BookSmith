@@ -23,6 +23,7 @@ public class MainViewModel : ViewModelBase
     private string _fileName = string.Empty;
     private double _fileSize;
     private int _pageCount;
+    private string _previewText = string.Empty;
 
     public string FilePath
     {
@@ -56,6 +57,12 @@ public class MainViewModel : ViewModelBase
     {
         get => _pageCount;
         set => SetProperty(ref _pageCount, value);
+    }
+
+    public string PreviewText
+    {
+        get => _previewText;
+        set => SetProperty(ref _previewText, value);
     }
 
     public bool RemoveHeaders
@@ -147,6 +154,7 @@ public class MainViewModel : ViewModelBase
                 FileName = metadata.FileName;
                 FileSize = metadata.FileSize;
                 PageCount = metadata.PageCount;
+                PreviewText = _pdfReader.ReadFirstPageText(FilePath);
             }
             catch (System.Exception ex)
             {
@@ -154,6 +162,7 @@ public class MainViewModel : ViewModelBase
                 FileName = "Error loading metadata";
                 FileSize = 0;
                 PageCount = 0;
+                PreviewText = "Error reading page content.";
             }
         }
     }

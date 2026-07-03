@@ -30,4 +30,23 @@ public class PdfPigReader : IPdfReader
 
         return metadata;
     }
+
+    public string ReadFirstPageText(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
+
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException("PDF file not found.", filePath);
+
+        using (var document = PdfDocument.Open(filePath))
+        {
+            if (document.NumberOfPages >= 1)
+            {
+                var page = document.GetPage(1);
+                return page.Text ?? string.Empty;
+            }
+            return string.Empty;
+        }
+    }
 }

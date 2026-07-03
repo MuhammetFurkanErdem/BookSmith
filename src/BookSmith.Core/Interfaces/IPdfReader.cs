@@ -5,4 +5,5 @@ namespace BookSmith.Core.Interfaces;
 public interface IPdfReader
 {
     PdfMetadata ReadMetadata(string filePath);
+    string ReadFirstPageText(string filePath);
 }
