@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using BookSmith.UI.Commands;
 using Microsoft.Win32;
+using UglyToad.PdfPig;
 
 namespace BookSmith.UI.ViewModels.Main;
 
@@ -17,6 +18,9 @@ public class MainViewModel : ViewModelBase
     private bool _exportEpub = false;
     private double _progressValue = 0;
     private string _statusText = "Ready.";
+    private string _fileName = string.Empty;
+    private double _fileSize;
+    private int _pageCount;
 
     public string FilePath
     {
@@ -25,10 +29,31 @@ public class MainViewModel : ViewModelBase
         {
             if (SetProperty(ref _filePath, value))
             {
+                OnPropertyChanged(nameof(IsFileSelected));
                 // Force command state evaluation
                 CommandManager.InvalidateRequerySuggested();
             }
         }
+    }
+
+    public bool IsFileSelected => !string.IsNullOrWhiteSpace(FilePath);
+
+    public string FileName
+    {
+        get => _fileName;
+        set => SetProperty(ref _fileName, value);
+    }
+
+    public double FileSize
+    {
+        get => _fileSize;
+        set => SetProperty(ref _fileSize, value);
+    }
+
+    public int PageCount
+    {
+        get => _pageCount;
+        set => SetProperty(ref _pageCount, value);
     }
 
     public bool RemoveHeaders
@@ -112,6 +137,25 @@ public class MainViewModel : ViewModelBase
         {
             FilePath = openFileDialog.FileName;
             StatusText = $"Selected file: {openFileDialog.SafeFileName}";
+
+            try
+            {
+                var fileInfo = new System.IO.FileInfo(FilePath);
+                FileName = fileInfo.Name;
+                FileSize = fileInfo.Length / 1024.0;
+
+                using (var document = PdfDocument.Open(FilePath))
+                {
+                    PageCount = document.NumberOfPages;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                StatusText = $"Error reading PDF: {ex.Message}";
+                FileName = "Error loading metadata";
+                FileSize = 0;
+                PageCount = 0;
+            }
         }
     }
 

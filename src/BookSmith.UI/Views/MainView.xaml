@@ -74,6 +74,65 @@
                             Height="38"
                             Padding="20,0" />
                 </Grid>
+
+                <!-- Separator -->
+                <Border x:Name="SeparatorBorder" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,16,0,12">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFileSelected}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
+
+                <!-- Metadata Grid -->
+                <Grid x:Name="MetadataGrid">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFileSelected}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- File Name -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="File Name" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                        <TextBlock Text="{Binding FileName}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <!-- Divider 1 -->
+                    <Border Grid.Column="1" Width="1" Background="{StaticResource BorderBrush}" Margin="12,4" />
+
+                    <!-- File Size -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="File Size" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                        <TextBlock Text="{Binding FileSize, StringFormat={}{0:F1} KB}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                    </StackPanel>
+
+                    <!-- Divider 2 -->
+                    <Border Grid.Column="3" Width="1" Background="{StaticResource BorderBrush}" Margin="12,4" />
+
+                    <!-- Page Count -->
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Text="Pages" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                        <TextBlock Text="{Binding PageCount, StringFormat={}{0} pages}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </Border>
 
