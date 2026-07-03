@@ -104,7 +104,7 @@ public class MainViewModel : ViewModelBase
     {
         var openFileDialog = new OpenFileDialog
         {
-            Filter = "PDF Files (*.pdf)|*.pdf|All Files (*.*)|*.*",
+            Filter = "PDF Files (*.pdf)|*.pdf",
             Title = "Select Audiobook PDF File"
         };
 
