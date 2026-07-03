@@ -1,6 +1,10 @@
-# Build outputs
-bin/
-obj/
+############################################
+# BookSmith - .NET / WPF Git Ignore
+############################################
+
+# Build output
+**/bin/
+**/obj/
 
 # Visual Studio
 .vs/
@@ -14,13 +18,33 @@ obj/
 # User-specific files
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
+
+# Temporary WPF project files
+*_wpftmp.csproj
+*.wpftmp
+
+# NuGet
+packages/
 
 # Logs
 *.log
 
-# NuGet packages
-packages/
-
-# Operating system files
+# OS files
 Thumbs.db
+Desktop.ini
 .DS_Store
+
+# Publish output
+publish/
+
+# Test Results
+TestResults/
+
+# Coverage
+coverage/
+*.coverage
+
+# Local settings (future)
+appsettings.Development.json
