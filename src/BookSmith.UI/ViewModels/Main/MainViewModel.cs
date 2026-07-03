@@ -1,12 +1,14 @@
 using System.Windows.Input;
 using BookSmith.UI.Commands;
 using Microsoft.Win32;
-using UglyToad.PdfPig;
+using BookSmith.Core.Interfaces;
 
 namespace BookSmith.UI.ViewModels.Main;
 
 public class MainViewModel : ViewModelBase
 {
+    private readonly IPdfReader _pdfReader;
+
     private string _filePath = string.Empty;
     private bool _removeHeaders = true;
     private bool _removeFooters = true;
@@ -121,6 +123,7 @@ public class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
+        _pdfReader = new BookSmith.Services.Pdf.PdfPigReader();
         BrowseCommand = new RelayCommand(OnBrowse);
         StartCleaningCommand = new RelayCommand(OnStartCleaning, CanStartCleaning);
     }
@@ -140,14 +143,10 @@ public class MainViewModel : ViewModelBase
 
             try
             {
-                var fileInfo = new System.IO.FileInfo(FilePath);
-                FileName = fileInfo.Name;
-                FileSize = fileInfo.Length / 1024.0;
-
-                using (var document = PdfDocument.Open(FilePath))
-                {
-                    PageCount = document.NumberOfPages;
-                }
+                var metadata = _pdfReader.ReadMetadata(FilePath);
+                FileName = metadata.FileName;
+                FileSize = metadata.FileSize;
+                PageCount = metadata.PageCount;
             }
             catch (System.Exception ex)
             {

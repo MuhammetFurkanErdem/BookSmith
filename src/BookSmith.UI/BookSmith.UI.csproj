@@ -6,10 +6,6 @@
     <ProjectReference Include="..\BookSmith.Infrastructure\BookSmith.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="PdfPig" Version="0.1.15" />
-  </ItemGroup>
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
