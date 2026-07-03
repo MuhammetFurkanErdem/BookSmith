@@ -7,11 +7,8 @@
              mc:Ignorable="d"
              d:DesignHeight="600"
              d:DesignWidth="500"
+             d:DataContext="{d:DesignInstance Type=mainVm:MainViewModel}"
              Background="Transparent">
-
-    <UserControl.DataContext>
-        <mainVm:MainViewModel />
-    </UserControl.DataContext>
 
     <Grid>
         <Grid.RowDefinitions>

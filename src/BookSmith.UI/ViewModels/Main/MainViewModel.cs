@@ -121,9 +121,9 @@ public class MainViewModel : ViewModelBase
     public ICommand BrowseCommand { get; }
     public ICommand StartCleaningCommand { get; }
 
-    public MainViewModel()
+    public MainViewModel(IPdfReader pdfReader)
     {
-        _pdfReader = new BookSmith.Services.Pdf.PdfPigReader();
+        _pdfReader = pdfReader;
         BrowseCommand = new RelayCommand(OnBrowse);
         StartCleaningCommand = new RelayCommand(OnStartCleaning, CanStartCleaning);
     }
