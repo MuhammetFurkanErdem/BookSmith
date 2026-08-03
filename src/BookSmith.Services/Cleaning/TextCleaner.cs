@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using BookSmith.Core.Interfaces;
 using BookSmith.Core.Models;
 
@@ -46,11 +47,18 @@ public class TextCleaner : ITextCleaner
                 continue;
             }
 
+            // Discard standalone page numbers during line merging
+            if (IsPageNumberLine(currentLine))
+            {
+                continue;
+            }
+
             if (i < lineCount - 1)
             {
                 string nextLine = lines[i + 1].TrimEnd();
 
                 if (!string.IsNullOrWhiteSpace(nextLine) &&
+                    !IsPageNumberLine(nextLine) &&
                     !EndsWithSentencePunctuation(currentLine) &&
                     !IsDialogueLine(nextLine))
                 {
@@ -71,8 +79,8 @@ public class TextCleaner : ITextCleaner
         if (pages == null || pages.Count == 0)
             return string.Empty;
 
-        var headerCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        var footerCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        var headerCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var footerCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         var pageLinesList = new List<List<string>>(pages.Count);
 
@@ -90,32 +98,43 @@ public class TextCleaner : ITextCleaner
             }
             pageLinesList.Add(lines);
 
-            string? firstLine = GetFirstLine(lines);
-            if (firstLine != null)
+            // Check top 2 non-empty lines for potential running headers
+            var topCandidates = GetTopNonEmptyLines(lines, 2);
+            foreach (var candidate in topCandidates)
             {
-                headerCounts[firstLine] = headerCounts.TryGetValue(firstLine, out int count) ? count + 1 : 1;
+                string trimmed = candidate.text.Trim();
+                if (!IsPageNumberLine(trimmed))
+                {
+                    headerCounts[trimmed] = headerCounts.TryGetValue(trimmed, out int count) ? count + 1 : 1;
+                }
             }
 
-            string? lastLine = GetLastLine(lines);
-            if (lastLine != null)
+            // Check bottom 2 non-empty lines for potential running footers
+            var bottomCandidates = GetBottomNonEmptyLines(lines, 2);
+            foreach (var candidate in bottomCandidates)
             {
-                footerCounts[lastLine] = footerCounts.TryGetValue(lastLine, out int count) ? count + 1 : 1;
+                string trimmed = candidate.text.Trim();
+                if (!IsPageNumberLine(trimmed))
+                {
+                    footerCounts[trimmed] = footerCounts.TryGetValue(trimmed, out int count) ? count + 1 : 1;
+                }
             }
         }
 
-        var headersToRemove = new HashSet<string>(StringComparer.Ordinal);
+        // Header/footer candidates appearing 2+ times across pages
+        var headersToRemove = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var kvp in headerCounts)
         {
-            if (kvp.Value >= 3)
+            if (kvp.Value >= 2)
             {
                 headersToRemove.Add(kvp.Key);
             }
         }
 
-        var footersToRemove = new HashSet<string>(StringComparer.Ordinal);
+        var footersToRemove = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var kvp in footerCounts)
         {
-            if (kvp.Value >= 3)
+            if (kvp.Value >= 2)
             {
                 footersToRemove.Add(kvp.Key);
             }
@@ -128,25 +147,38 @@ public class TextCleaner : ITextCleaner
             if (lines.Count == 0)
                 continue;
 
-            int firstIndex = GetFirstLineIndex(lines);
-            if (firstIndex != -1)
+            // Strip top page numbers and headers
+            for (int k = 0; k < 3; k++)
             {
-                string trimmed = lines[firstIndex].Trim();
-                if (headersToRemove.Contains(trimmed))
+                int topIndex = GetFirstLineIndex(lines);
+                if (topIndex != -1)
                 {
-                    lines.RemoveAt(firstIndex);
+                    string trimmed = lines[topIndex].Trim();
+                    if (IsPageNumberLine(trimmed) || headersToRemove.Contains(trimmed))
+                    {
+                        lines.RemoveAt(topIndex);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
 
-            if (lines.Count > 0)
+            // Strip bottom page numbers and footers
+            for (int k = 0; k < 3; k++)
             {
                 int lastIndex = GetLastLineIndex(lines);
                 if (lastIndex != -1)
                 {
                     string trimmed = lines[lastIndex].Trim();
-                    if (footersToRemove.Contains(trimmed))
+                    if (IsPageNumberLine(trimmed) || footersToRemove.Contains(trimmed))
                     {
                         lines.RemoveAt(lastIndex);
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
             }
@@ -208,6 +240,56 @@ public class TextCleaner : ITextCleaner
         return result.ToString().Trim();
     }
 
+    public static bool IsPageNumberLine(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        string trimmed = line.Trim();
+
+        // 1. Pure positive integers: "16", "172"
+        if (int.TryParse(trimmed, out int num) && num > 0 && num < 10000)
+            return true;
+
+        // 2. Numbers wrapped in dashes/brackets/spaces: "- 16 -", "— 16 —", "[16]", "(16)"
+        string stripped = trimmed.Trim('-', '—', '–', '[', ']', '(', ')', ' ', '.');
+        if (int.TryParse(stripped, out int num2) && num2 > 0 && num2 < 10000)
+            return true;
+
+        // 3. Keywords like "Sayfa 16", "Page 16", "16 / 350"
+        if (Regex.IsMatch(trimmed, @"^(page|sayfa)\s+\d+$", RegexOptions.IgnoreCase))
+            return true;
+
+        if (Regex.IsMatch(trimmed, @"^\d+\s*\/\s*\d+$"))
+            return true;
+
+        return false;
+    }
+
+    private static List<(int index, string text)> GetTopNonEmptyLines(List<string> lines, int count)
+    {
+        var result = new List<(int index, string text)>();
+        for (int i = 0; i < lines.Count && result.Count < count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(lines[i]))
+            {
+                result.Add((i, lines[i]));
+            }
+        }
+        return result;
+    }
+
+    private static List<(int index, string text)> GetBottomNonEmptyLines(List<string> lines, int count)
+    {
+        var result = new List<(int index, string text)>();
+        for (int i = lines.Count - 1; i >= 0 && result.Count < count; i--)
+        {
+            if (!string.IsNullOrWhiteSpace(lines[i]))
+            {
+                result.Add((i, lines[i]));
+            }
+        }
+        return result;
+    }
+
     private static int GetFirstLineIndex(List<string> lines)
     {
         for (int i = 0; i < lines.Count; i++)
@@ -226,18 +308,6 @@ public class TextCleaner : ITextCleaner
                 return i;
         }
         return -1;
-    }
-
-    private static string? GetFirstLine(List<string> lines)
-    {
-        int index = GetFirstLineIndex(lines);
-        return index != -1 ? lines[index].Trim() : null;
-    }
-
-    private static string? GetLastLine(List<string> lines)
-    {
-        int index = GetLastLineIndex(lines);
-        return index != -1 ? lines[index].Trim() : null;
     }
 
     private static bool EndsWithSentencePunctuation(string line)
