@@ -65,6 +65,133 @@ public class TextCleaner : ITextCleaner
         return result.ToString().Trim();
     }
 
+    public string RemoveHeadersAndFooters(IReadOnlyList<string> pages)
+    {
+        if (pages == null || pages.Count == 0)
+            return string.Empty;
+
+        var headerCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        var footerCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        var pageLinesList = new List<List<string>>(pages.Count);
+
+        foreach (string rawPage in pages)
+        {
+            string pageText = (rawPage ?? string.Empty)
+                .Replace("\r\n", "\n")
+                .Replace('\r', '\n');
+
+            string[] rawLines = pageText.Split('\n');
+            var lines = new List<string>(rawLines.Length);
+            foreach (string l in rawLines)
+            {
+                lines.Add(l);
+            }
+            pageLinesList.Add(lines);
+
+            string? firstLine = GetFirstLine(lines);
+            if (firstLine != null)
+            {
+                headerCounts[firstLine] = headerCounts.TryGetValue(firstLine, out int count) ? count + 1 : 1;
+            }
+
+            string? lastLine = GetLastLine(lines);
+            if (lastLine != null)
+            {
+                footerCounts[lastLine] = footerCounts.TryGetValue(lastLine, out int count) ? count + 1 : 1;
+            }
+        }
+
+        var headersToRemove = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var kvp in headerCounts)
+        {
+            if (kvp.Value >= 3)
+            {
+                headersToRemove.Add(kvp.Key);
+            }
+        }
+
+        var footersToRemove = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var kvp in footerCounts)
+        {
+            if (kvp.Value >= 3)
+            {
+                footersToRemove.Add(kvp.Key);
+            }
+        }
+
+        var cleanedPages = new List<string>();
+
+        foreach (var lines in pageLinesList)
+        {
+            if (lines.Count == 0)
+                continue;
+
+            int firstIndex = GetFirstLineIndex(lines);
+            if (firstIndex != -1)
+            {
+                string trimmed = lines[firstIndex].Trim();
+                if (headersToRemove.Contains(trimmed))
+                {
+                    lines.RemoveAt(firstIndex);
+                }
+            }
+
+            if (lines.Count > 0)
+            {
+                int lastIndex = GetLastLineIndex(lines);
+                if (lastIndex != -1)
+                {
+                    string trimmed = lines[lastIndex].Trim();
+                    if (footersToRemove.Contains(trimmed))
+                    {
+                        lines.RemoveAt(lastIndex);
+                    }
+                }
+            }
+
+            string pageContent = string.Join("\n", lines).Trim();
+            if (!string.IsNullOrWhiteSpace(pageContent))
+            {
+                cleanedPages.Add(pageContent);
+            }
+        }
+
+        return string.Join("\n\n", cleanedPages);
+    }
+
+    private static int GetFirstLineIndex(List<string> lines)
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(lines[i]))
+                return i;
+        }
+        return -1;
+    }
+
+    private static int GetLastLineIndex(List<string> lines)
+    {
+        for (int i = lines.Count - 1; i >= 0; i--)
+        {
+            if (!string.IsNullOrWhiteSpace(lines[i]))
+                return i;
+        }
+        return -1;
+    }
+
+    private static string? GetFirstLine(List<string> lines)
+    {
+        int index = GetFirstLineIndex(lines);
+        return index != -1 ? lines[index].Trim() : null;
+    }
+
+    private static string? GetLastLine(List<string> lines)
+    {
+        int index = GetLastLineIndex(lines);
+        return index != -1 ? lines[index].Trim() : null;
+    }
+
     private static bool EndsWithSentencePunctuation(string line)
     {
         if (string.IsNullOrWhiteSpace(line)) return false;
