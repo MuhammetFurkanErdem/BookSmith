@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using BookSmith.Core.Interfaces;
 using BookSmith.Core.Models;
 
@@ -7,20 +9,37 @@ public class BasicTextCleaner : ITextCleaner
 {
     public TextCleaningResult Clean(string input)
     {
-        if (input == null)
+        string original = input ?? string.Empty;
+        string normalized = original.Replace("\r\n", "\n").Replace('\r', '\n');
+
+        string[] lines = normalized.Split('\n');
+        var resultLines = new List<string>(lines.Length);
+        int consecutiveBlankCount = 0;
+
+        foreach (string line in lines)
         {
-            return new TextCleaningResult
+            string trimmedLine = line.TrimEnd();
+            if (trimmedLine.Length == 0)
             {
-                CleanedText = string.Empty,
-                IsModified = false
-            };
+                consecutiveBlankCount++;
+                if (consecutiveBlankCount <= 2)
+                {
+                    resultLines.Add(trimmedLine);
+                }
+            }
+            else
+            {
+                consecutiveBlankCount = 0;
+                resultLines.Add(trimmedLine);
+            }
         }
 
-        string trimmed = input.Trim();
+        string cleaned = string.Join("\n", resultLines).Trim();
+
         return new TextCleaningResult
         {
-            CleanedText = trimmed,
-            IsModified = trimmed != input
+            OriginalText = original,
+            CleanedText = cleaned
         };
     }
 }
