@@ -220,7 +220,7 @@
             </DockPanel>
         </Border>
 
-        <!-- Progress Section -->
+        <!-- Progress & Results Section -->
         <Border Grid.Row="3"
                 Background="{StaticResource BgContainerBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
@@ -253,6 +253,83 @@
                 <ProgressBar Value="{Binding ProgressValue}"
                              Maximum="100"
                              Height="10" />
+
+                <!-- Results Statistics Card (Visible when IsCleaned == True) -->
+                <Border Margin="0,16,0,0"
+                        Padding="12"
+                        Background="#16161E"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCleaned}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Original Chars -->
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Original Chars" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                            <TextBlock Text="{Binding OriginalCharCount, StringFormat={}{0:N0}}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        </StackPanel>
+
+                        <!-- Divider 1 -->
+                        <Border Grid.Column="1" Width="1" Background="{StaticResource BorderBrush}" Margin="8,2" />
+
+                        <!-- Cleaned Chars -->
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Cleaned Chars" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                            <TextBlock Text="{Binding CleanedCharCount, StringFormat={}{0:N0}}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        </StackPanel>
+
+                        <!-- Divider 2 -->
+                        <Border Grid.Column="3" Width="1" Background="{StaticResource BorderBrush}" Margin="8,2" />
+
+                        <!-- Reduction % -->
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Reduction" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                            <TextBlock Text="{Binding ReductionPercentage, StringFormat={}{0:F1}%}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Cleaned Text Preview Panel (Visible when IsCleaned == True) -->
+                <StackPanel Margin="0,16,0,0">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCleaned}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="Cleaned Book Text Preview" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding CleanedText, Mode=OneWay}" 
+                             IsReadOnly="True" 
+                             Height="140" 
+                             TextWrapping="Wrap" 
+                             AcceptsReturn="True" 
+                             VerticalScrollBarVisibility="Auto" 
+                             HorizontalScrollBarVisibility="Disabled"
+                             Background="#121215"
+                             BorderBrush="{StaticResource BorderBrush}"
+                             Padding="8" />
+                </StackPanel>
             </StackPanel>
         </Border>
 

@@ -1,7 +1,9 @@
+using System;
+using System.Threading.Tasks;
 using System.Windows.Input;
+using BookSmith.Core.Interfaces;
 using BookSmith.UI.Commands;
 using Microsoft.Win32;
-using BookSmith.Core.Interfaces;
 
 namespace BookSmith.UI.ViewModels.Main;
 
@@ -9,6 +11,7 @@ public class MainViewModel : ViewModelBase
 {
     private readonly IPdfReader _pdfReader;
     private readonly ITextCleaner _textCleaner;
+    private readonly IBookPipeline _bookPipeline;
 
     private string _filePath = string.Empty;
     private bool _removeHeaders = true;
@@ -25,6 +28,13 @@ public class MainViewModel : ViewModelBase
     private double _fileSize;
     private int _pageCount;
     private string _previewText = string.Empty;
+    private string _cleanedText = string.Empty;
+    private bool _isProcessing = false;
+    private bool _isCleaned = false;
+    private int _originalCharCount = 0;
+    private int _cleanedCharCount = 0;
+    private int _removedCharCount = 0;
+    private double _reductionPercentage = 0;
 
     public string FilePath
     {
@@ -34,7 +44,7 @@ public class MainViewModel : ViewModelBase
             if (SetProperty(ref _filePath, value))
             {
                 OnPropertyChanged(nameof(IsFileSelected));
-                // Force command state evaluation
+                IsCleaned = false;
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -64,6 +74,54 @@ public class MainViewModel : ViewModelBase
     {
         get => _previewText;
         set => SetProperty(ref _previewText, value);
+    }
+
+    public string CleanedText
+    {
+        get => _cleanedText;
+        set => SetProperty(ref _cleanedText, value);
+    }
+
+    public bool IsProcessing
+    {
+        get => _isProcessing;
+        set
+        {
+            if (SetProperty(ref _isProcessing, value))
+            {
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
+    public bool IsCleaned
+    {
+        get => _isCleaned;
+        set => SetProperty(ref _isCleaned, value);
+    }
+
+    public int OriginalCharCount
+    {
+        get => _originalCharCount;
+        set => SetProperty(ref _originalCharCount, value);
+    }
+
+    public int CleanedCharCount
+    {
+        get => _cleanedCharCount;
+        set => SetProperty(ref _cleanedCharCount, value);
+    }
+
+    public int RemovedCharCount
+    {
+        get => _removedCharCount;
+        set => SetProperty(ref _removedCharCount, value);
+    }
+
+    public double ReductionPercentage
+    {
+        get => _reductionPercentage;
+        set => SetProperty(ref _reductionPercentage, value);
     }
 
     public bool RemoveHeaders
@@ -129,12 +187,14 @@ public class MainViewModel : ViewModelBase
     public ICommand BrowseCommand { get; }
     public ICommand StartCleaningCommand { get; }
 
-    public MainViewModel(IPdfReader pdfReader, ITextCleaner textCleaner)
+    public MainViewModel(IPdfReader pdfReader, ITextCleaner textCleaner, IBookPipeline bookPipeline)
     {
-        _pdfReader = pdfReader;
-        _textCleaner = textCleaner;
+        _pdfReader = pdfReader ?? throw new ArgumentNullException(nameof(pdfReader));
+        _textCleaner = textCleaner ?? throw new ArgumentNullException(nameof(textCleaner));
+        _bookPipeline = bookPipeline ?? throw new ArgumentNullException(nameof(bookPipeline));
+
         BrowseCommand = new RelayCommand(OnBrowse);
-        StartCleaningCommand = new RelayCommand(OnStartCleaning, CanStartCleaning);
+        StartCleaningCommand = new AsyncRelayCommand(OnStartCleaningAsync, CanStartCleaning);
     }
 
     private void OnBrowse()
@@ -158,7 +218,7 @@ public class MainViewModel : ViewModelBase
                 PageCount = metadata.PageCount;
                 PreviewText = _pdfReader.ReadFirstPageText(FilePath);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 StatusText = $"Error reading PDF: {ex.Message}";
                 FileName = "Error loading metadata";
@@ -171,12 +231,45 @@ public class MainViewModel : ViewModelBase
 
     private bool CanStartCleaning()
     {
-        return !string.IsNullOrWhiteSpace(FilePath);
+        return !string.IsNullOrWhiteSpace(FilePath) && !IsProcessing;
     }
 
-    private void OnStartCleaning()
+    private async Task OnStartCleaningAsync()
     {
-        StatusText = "Cleaning in progress...";
-        ProgressValue = 50; // Visual proof of binding
+        if (string.IsNullOrWhiteSpace(FilePath))
+            return;
+
+        IsProcessing = true;
+        IsCleaned = false;
+        ProgressValue = 20;
+        StatusText = "Extracting pages & cleaning book text...";
+
+        try
+        {
+            string path = FilePath;
+            var result = await Task.Run(() => _bookPipeline.Process(path));
+
+            ProgressValue = 80;
+            StatusText = "Finalizing text cleaning...";
+
+            CleanedText = result.CleanedText;
+            OriginalCharCount = result.OriginalCharCount;
+            CleanedCharCount = result.CleanedCharCount;
+            RemovedCharCount = result.RemovedCharCount;
+            ReductionPercentage = result.ReductionPercentage;
+
+            ProgressValue = 100;
+            IsCleaned = true;
+            StatusText = $"Completed! Cleaned {CleanedCharCount:N0} chars ({ReductionPercentage:F1}% reduction).";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error processing book: {ex.Message}";
+            ProgressValue = 0;
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
     }
 }

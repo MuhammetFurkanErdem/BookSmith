@@ -138,18 +138,19 @@
 
 ---
 
-## 🚀 Upcoming Sprints (Roadmap)
-
-### Sprint 14 - Pipeline UI Integration & Progress Reporting 👈 **NEXT STEP**
+### Sprint 14 - Pipeline UI Integration & Progress Reporting
+**Status:** ✅ Completed  
 **Goal:** Connect `IBookPipeline` to `MainViewModel` and `MainView.xaml`.
-- **Tasks:**
-  - Add `CleanBookCommand` to `MainViewModel`.
-  - Add UI progress bar & status indicators for asynchronous processing.
-  - Render cleaned text result and statistics summary card in `MainView`.
+- Updated `MainViewModel` with asynchronous `StartCleaningCommand` and `IBookPipeline` dependency injection.
+- Added reactive properties: `IsProcessing`, `IsCleaned`, `CleanedText`, `OriginalCharCount`, `CleanedCharCount`, `ReductionPercentage`.
+- Updated `MainView.xaml` with Results Statistics Card and Cleaned Text Preview panel.
+- Created `MainViewModelTests` unit test suite (18 total passing tests).
 
 ---
 
-### Sprint 15 - Advanced Dialogue & TTS Formatting (ElevenReader Optimization)
+## 🚀 Upcoming Sprints (Roadmap)
+
+### Sprint 15 - Advanced Dialogue & TTS Formatting (ElevenReader Optimization) 👈 **NEXT STEP**
 **Goal:** Format text specifically for TTS engines like ElevenReader.
 - **Tasks:**
   - Standardize dialogue quotes (`“...”`, `«...»`, `—`).
