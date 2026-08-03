@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using BookSmith.Core.Interfaces;
 using BookSmith.Core.Models;
+using BookSmith.UI.Navigation;
 using BookSmith.UI.ViewModels.Main;
 using Xunit;
 
@@ -40,61 +41,19 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public void Constructor_WithNullPdfReader_ThrowsArgumentNullException()
+    public void Constructor_WithNullNavigationService_ThrowsArgumentNullException()
     {
-        Assert.Throws<ArgumentNullException>(() => new MainViewModel(null!, new MockTextCleaner(), new MockBookPipeline()));
+        Assert.Throws<ArgumentNullException>(() => new MainViewModel(null!, new MockPdfReader(), new MockTextCleaner(), new MockBookPipeline()));
     }
 
     [Fact]
-    public void Constructor_WithNullTextCleaner_ThrowsArgumentNullException()
+    public void InitialState_NavigatesToImportViewModel()
     {
-        Assert.Throws<ArgumentNullException>(() => new MainViewModel(new MockPdfReader(), null!, new MockBookPipeline()));
-    }
+        var navService = new NavigationService();
+        var vm = new MainViewModel(navService, new MockPdfReader(), new MockTextCleaner(), new MockBookPipeline());
 
-    [Fact]
-    public void Constructor_WithNullBookPipeline_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() => new MainViewModel(new MockPdfReader(), new MockTextCleaner(), null!));
-    }
-
-    [Fact]
-    public void CanStartCleaning_WhenFilePathIsEmpty_ReturnsFalse()
-    {
-        var vm = new MainViewModel(new MockPdfReader(), new MockTextCleaner(), new MockBookPipeline());
-        Assert.False(vm.StartCleaningCommand.CanExecute(null));
-    }
-
-    [Fact]
-    public void CanStartCleaning_WhenFilePathIsSet_ReturnsTrue()
-    {
-        var vm = new MainViewModel(new MockPdfReader(), new MockTextCleaner(), new MockBookPipeline())
-        {
-            FilePath = "C:\\test.pdf"
-        };
-        Assert.True(vm.StartCleaningCommand.CanExecute(null));
-    }
-
-    [Fact]
-    public async Task StartCleaningCommand_ExecutesPipelineAndUpdatesProperties()
-    {
-        var vm = new MainViewModel(new MockPdfReader(), new MockTextCleaner(), new MockBookPipeline())
-        {
-            FilePath = "C:\\test.pdf"
-        };
-
-        Assert.False(vm.IsCleaned);
-        Assert.Equal(0, vm.ProgressValue);
-
-        if (vm.StartCleaningCommand.CanExecute(null))
-        {
-            vm.StartCleaningCommand.Execute(null);
-            // Wait brief moment for AsyncRelayCommand task
-            await Task.Delay(100);
-        }
-
-        Assert.True(vm.IsCleaned);
-        Assert.Equal(100, vm.ProgressValue);
-        Assert.Equal("Cleaned output text", vm.CleanedText);
-        Assert.Contains("Completed!", vm.StatusText);
+        Assert.NotNull(navService.CurrentViewModel);
+        Assert.IsType<ImportViewModel>(navService.CurrentViewModel);
+        Assert.Equal(1, navService.CurrentStep);
     }
 }
