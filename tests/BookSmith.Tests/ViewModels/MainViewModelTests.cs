@@ -22,6 +22,7 @@ public class MainViewModelTests
     {
         public TextCleaningResult Clean(string input) => new TextCleaningResult { OriginalText = input, CleanedText = "Cleaned: " + input };
         public string RemoveHeadersAndFooters(IReadOnlyList<string> pages) => string.Join("\n\n", pages);
+        public string FormatDialogueForTts(string text) => text;
     }
 
     private class MockBookPipeline : IBookPipeline

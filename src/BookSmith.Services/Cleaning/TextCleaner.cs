@@ -17,7 +17,8 @@ public class TextCleaner : ITextCleaner
             .Replace("\r\n", "\n")
             .Replace('\r', '\n');
 
-        string cleanedText = MergeWrappedLines(normalized);
+        string lineMerged = MergeWrappedLines(normalized);
+        string cleanedText = FormatDialogueForTts(lineMerged);
 
         return new TextCleaningResult
         {
@@ -158,6 +159,53 @@ public class TextCleaner : ITextCleaner
         }
 
         return string.Join("\n\n", cleanedPages);
+    }
+
+    public string FormatDialogueForTts(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        // 1. Normalize guillemets (« and ») to standard dialogue quotes (“ and ”)
+        string normalizedQuotes = text
+            .Replace('«', '“')
+            .Replace('»', '”');
+
+        string[] lines = normalizedQuotes.Split('\n');
+        var result = new StringBuilder();
+        int lineCount = lines.Length;
+
+        for (int i = 0; i < lineCount; i++)
+        {
+            string line = lines[i].TrimEnd();
+
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                result.Append('\n');
+                continue;
+            }
+
+            string trimmedStart = line.TrimStart();
+            if (trimmedStart.Length > 0)
+            {
+                char firstChar = trimmedStart[0];
+                // Normalize leading dialogue dashes: '-' or '–' -> '— '
+                if (firstChar == '-' || firstChar == '–')
+                {
+                    string lineBody = trimmedStart.Substring(1).TrimStart();
+                    line = "— " + lineBody;
+                }
+                else if (firstChar == '—' && (trimmedStart.Length == 1 || trimmedStart[1] != ' '))
+                {
+                    string lineBody = trimmedStart.Substring(1).TrimStart();
+                    line = "— " + lineBody;
+                }
+            }
+
+            result.Append(line).Append('\n');
+        }
+
+        return result.ToString().Trim();
     }
 
     private static int GetFirstLineIndex(List<string> lines)

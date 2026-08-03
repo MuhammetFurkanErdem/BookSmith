@@ -7,4 +7,5 @@ public interface ITextCleaner
 {
     TextCleaningResult Clean(string input);
     string RemoveHeadersAndFooters(IReadOnlyList<string> pages);
+    string FormatDialogueForTts(string text);
 }

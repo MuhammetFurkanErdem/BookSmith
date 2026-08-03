@@ -148,18 +148,18 @@
 
 ---
 
-## 🚀 Upcoming Sprints (Roadmap)
-
-### Sprint 15 - Advanced Dialogue & TTS Formatting (ElevenReader Optimization) 👈 **NEXT STEP**
+### Sprint 15 - Advanced Dialogue & TTS Formatting (ElevenReader Optimization)
+**Status:** ✅ Completed  
 **Goal:** Format text specifically for TTS engines like ElevenReader.
-- **Tasks:**
-  - Standardize dialogue quotes (`“...”`, `«...»`, `—`).
-  - Add paragraph breaks and natural pause formatting for character speech.
-  - Add configurable cleaning rules in `TextCleaner`.
+- Added `FormatDialogueForTts` to `ITextCleaner` and `TextCleaner`.
+- Implemented quote normalization (`«`, `»` -> `“`, `”`) and leading dialogue dash normalization (`-`, `–` -> `— `).
+- Created `DialogueFormattingTests` unit test suite (22 total passing tests).
 
 ---
 
-### Sprint 16 - EPUB Exporter Service (`IEpubExporter`)
+## 🚀 Upcoming Sprints (Roadmap)
+
+### Sprint 16 - EPUB Exporter Service (`IEpubExporter`) 👈 **NEXT STEP**
 **Goal:** Package cleaned text into standard EPUB format.
 - **Tasks:**
   - Implement `EpubExporter` in `BookSmith.Services/Export`.
