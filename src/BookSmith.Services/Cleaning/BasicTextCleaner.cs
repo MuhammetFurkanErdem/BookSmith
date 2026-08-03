@@ -10,7 +10,10 @@ public class BasicTextCleaner : ITextCleaner
     public TextCleaningResult Clean(string input)
     {
         string original = input ?? string.Empty;
-        string normalized = original.Replace("\r\n", "\n").Replace('\r', '\n');
+        string normalized = original
+            .Replace("\u00AD", string.Empty)
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n');
 
         string[] lines = normalized.Split('\n');
         var resultLines = new List<string>(lines.Length);
