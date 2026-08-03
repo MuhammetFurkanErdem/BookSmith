@@ -18,7 +18,8 @@ public class TextCleaner : ITextCleaner
             .Replace("\r\n", "\n")
             .Replace('\r', '\n');
 
-        string lineMerged = MergeWrappedLines(normalized);
+        string disjoined = DisjoinGluedHeadersAndNumbers(normalized);
+        string lineMerged = MergeWrappedLines(disjoined);
         string cleanedText = FormatDialogueForTts(lineMerged);
 
         return new TextCleaningResult
@@ -86,7 +87,7 @@ public class TextCleaner : ITextCleaner
 
         foreach (string rawPage in pages)
         {
-            string pageText = (rawPage ?? string.Empty)
+            string pageText = DisjoinGluedHeadersAndNumbers(rawPage ?? string.Empty)
                 .Replace("\r\n", "\n")
                 .Replace('\r', '\n');
 
@@ -238,6 +239,23 @@ public class TextCleaner : ITextCleaner
         }
 
         return result.ToString().Trim();
+    }
+
+    public static string DisjoinGluedHeadersAndNumbers(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        // 1. Split trailing numbers attached to punctuation/quotes/letters: "saçlar,11" -> "saçlar,\n11", "git.”12" -> "git.”\n12"
+        string result = Regex.Replace(text, @"([\.\,\”""'\?\!\w\u00A0-\u024F])(\d{1,4})\b", "$1\n$2");
+
+        // 2. Split uppercase headers attached to lowercase body words: "KADER KILICIsolgun" -> "KADER KILICI\nsolgun"
+        result = Regex.Replace(result, @"\b([A-ZÇĞİÖŞÜ]{3,}(?:\s+[A-ZÇĞİÖŞÜ]{2,})*)([a-zçğıöşüA-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})", "$1\n$2");
+
+        // 3. Split author names attached to body words: "Andrzej SapkovvskiSivilceli" -> "Andrzej Sapkovvski\nSivilceli"
+        result = Regex.Replace(result, @"\b([A-Z][a-zçğıöşü]+\s+[A-Z][a-zçğıöşü]+)([A-Z][a-zçğıöşü]{2,})", "$1\n$2");
+
+        return result;
     }
 
     public static bool IsPageNumberLine(string line)

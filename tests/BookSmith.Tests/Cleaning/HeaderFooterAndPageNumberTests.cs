@@ -52,4 +52,21 @@ public class HeaderFooterAndPageNumberTests
         Assert.Contains("Adam yere serilmişti.", result);
         Assert.Contains("Muhafızlar derhal geri çekilip yüzlerini örttüler.", result);
     }
+
+    [Fact]
+    public void DisjoinGluedHeadersAndNumbers_SplitsGluedHeadersAndTrailingPageNumbers()
+    {
+        string rawGluedInput = "saçlar,11 KADER KILICIsolgun bir yüz. git.”12 Andrzej SapkovvskiSivilceli de geri";
+
+        var result = _textCleaner.Clean(rawGluedInput);
+
+        Assert.DoesNotContain("saçlar,11", result.CleanedText);
+        Assert.DoesNotContain("KADER KILICIsolgun", result.CleanedText);
+        Assert.DoesNotContain("git.”12", result.CleanedText);
+        Assert.DoesNotContain("SapkovvskiSivilceli", result.CleanedText);
+
+        Assert.Contains("saçlar,", result.CleanedText);
+        Assert.Contains("solgun bir yüz.", result.CleanedText);
+        Assert.Contains("Sivilceli de geri", result.CleanedText);
+    }
 }
