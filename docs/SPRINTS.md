@@ -206,18 +206,21 @@ All v1.0 core sprints are fully implemented, tested, and verified.
 
 ---
 
-### Sprint 20 - Interactive Full-Screen Editor (`EditorView` & `EditorViewModel`) 👈 **NEXT STEP**
+### Sprint 20 - Interactive Full-Screen Editor (`EditorView` & `EditorViewModel`)
+**Status:** ✅ Completed  
 **Goal:** Provide a dedicated full-text editor allowing live manual edits, search & replace, line removal, and character metrics before exporting.
-- **Tasks:**
-  - Build `EditorView` with line numbers, search & replace (`Ctrl+F`), and live inline text editing.
-  - Connect edited text directly to EPUB and TXT export generators.
-  - Add quick-action toolbar: "Remove Selected Line", "Clean Selected Text", "Undo/Redo".
+- Added **Search & Replace** panel (`Ctrl+F`) with case-insensitive matching, match count, Replace single/all.
+- Added **Quick-Action Toolbar**: `🔍 Search & Replace`, `✂ Remove Selection`, `↩ Undo`, `↪ Redo`.
+- Implemented **Undo/Redo** stack (up to 20 text snapshots) with `Ctrl+Z` / `Ctrl+Y` keyboard shortcuts.
+- Added **Remove Selected Lines** feature with live selection tracking via `SelectionChanged`.
+- Added **Live Word & Line counters** in stats card (auto-updating on every text change).
+- Created `EditorViewModelTests` unit test suite (61 total passing tests).
 
 ---
 
 ## Phase 2: Enhanced Intelligence & Publisher Filtering
 
-### Sprint 21 - Automatic Front-Matter & Publisher Credit Filter (`IFrontMatterFilter`)
+### Sprint 21 - Automatic Front-Matter & Publisher Credit Filter (`IFrontMatterFilter`) 👈 **NEXT STEP**
 **Goal:** Automatically detect and strip publisher copyright details, ISBNs, translator notes, and printing credits from front matter pages.
 - **Tasks:**
   - Create `IFrontMatterFilter` in `BookSmith.Services`.

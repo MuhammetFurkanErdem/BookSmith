@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 using BookSmith.Core.Interfaces;
 using BookSmith.Core.Models;
@@ -21,7 +24,28 @@ public class EditorViewModel : ViewModelBase
     private double _reductionPercentage = 0;
     private string _statusText = "Ready to edit or export.";
 
+    // Search & Replace state
+    private string _searchQuery = string.Empty;
+    private string _replaceQuery = string.Empty;
+    private bool _isSearchPanelVisible = false;
+    private int _searchResultCount = 0;
+
+    // Undo/Redo state
+    private readonly Stack<string> _undoStack = new();
+    private readonly Stack<string> _redoStack = new();
+    private const int MaxUndoHistory = 20;
+    private bool _isUndoRedoOperation = false;
+
+    // Selection state
+    private string _selectedText = string.Empty;
+
+    // Live counters
+    private int _wordCount = 0;
+    private int _lineCount = 0;
+
     public Action? OnBackRequested { get; set; }
+
+    #region Core Properties
 
     public string FileName
     {
@@ -34,11 +58,39 @@ public class EditorViewModel : ViewModelBase
         get => _cleanedText;
         set
         {
+            string oldValue = _cleanedText;
             if (SetProperty(ref _cleanedText, value))
             {
+                // Push to undo stack (only if not an undo/redo operation)
+                if (!_isUndoRedoOperation && !string.IsNullOrEmpty(oldValue))
+                {
+                    if (_undoStack.Count >= MaxUndoHistory)
+                    {
+                        // Remove oldest items to maintain max size
+                        var tempList = _undoStack.ToList();
+                        tempList.RemoveAt(tempList.Count - 1);
+                        _undoStack.Clear();
+                        foreach (var item in tempList.AsEnumerable().Reverse())
+                            _undoStack.Push(item);
+                    }
+                    _undoStack.Push(oldValue);
+                    _redoStack.Clear();
+                }
+
+                // Update computed properties
                 CleanedCharCount = _cleanedText.Length;
                 RemovedCharCount = Math.Max(0, OriginalCharCount - CleanedCharCount);
                 ReductionPercentage = OriginalCharCount > 0 ? (RemovedCharCount * 100.0 / OriginalCharCount) : 0;
+
+                // Update live counters
+                UpdateCounters();
+
+                // Update search results if search is active
+                if (IsSearchPanelVisible && !string.IsNullOrEmpty(SearchQuery))
+                    UpdateSearchResultCount();
+
+                // Notify CanExecute changes
+                CommandManager.InvalidateRequerySuggested();
             }
         }
     }
@@ -73,18 +125,242 @@ public class EditorViewModel : ViewModelBase
         set => SetProperty(ref _statusText, value);
     }
 
+    #endregion
+
+    #region Search & Replace Properties
+
+    public string SearchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            if (SetProperty(ref _searchQuery, value))
+            {
+                UpdateSearchResultCount();
+            }
+        }
+    }
+
+    public string ReplaceQuery
+    {
+        get => _replaceQuery;
+        set => SetProperty(ref _replaceQuery, value);
+    }
+
+    public bool IsSearchPanelVisible
+    {
+        get => _isSearchPanelVisible;
+        set => SetProperty(ref _isSearchPanelVisible, value);
+    }
+
+    public int SearchResultCount
+    {
+        get => _searchResultCount;
+        set => SetProperty(ref _searchResultCount, value);
+    }
+
+    #endregion
+
+    #region Selection & Counter Properties
+
+    public string SelectedText
+    {
+        get => _selectedText;
+        set
+        {
+            if (SetProperty(ref _selectedText, value))
+            {
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
+    public int WordCount
+    {
+        get => _wordCount;
+        set => SetProperty(ref _wordCount, value);
+    }
+
+    public int LineCount
+    {
+        get => _lineCount;
+        set => SetProperty(ref _lineCount, value);
+    }
+
+    #endregion
+
+    #region Commands
+
     public ICommand ExportEpubCommand { get; }
     public ICommand ExportTxtCommand { get; }
     public ICommand BackCommand { get; }
+
+    // Search & Replace commands
+    public ICommand ToggleSearchCommand { get; }
+    public ICommand FindNextCommand { get; }
+    public ICommand ReplaceCurrentCommand { get; }
+    public ICommand ReplaceAllCommand { get; }
+
+    // Quick-action commands
+    public ICommand RemoveSelectedLinesCommand { get; }
+    public ICommand UndoCommand { get; }
+    public ICommand RedoCommand { get; }
+
+    #endregion
 
     public EditorViewModel(IEpubExporter? epubExporter = null)
     {
         _epubExporter = epubExporter;
 
+        // Export commands
         ExportEpubCommand = new RelayCommand(OnExportEpub, () => !string.IsNullOrWhiteSpace(CleanedText));
         ExportTxtCommand = new RelayCommand(OnExportTxt, () => !string.IsNullOrWhiteSpace(CleanedText));
         BackCommand = new RelayCommand(() => OnBackRequested?.Invoke());
+
+        // Search & Replace commands
+        ToggleSearchCommand = new RelayCommand(OnToggleSearch);
+        FindNextCommand = new RelayCommand(OnFindNext, () => !string.IsNullOrWhiteSpace(SearchQuery) && SearchResultCount > 0);
+        ReplaceCurrentCommand = new RelayCommand(OnReplaceCurrent, () => !string.IsNullOrWhiteSpace(SearchQuery) && SearchResultCount > 0);
+        ReplaceAllCommand = new RelayCommand(OnReplaceAll, () => !string.IsNullOrWhiteSpace(SearchQuery) && SearchResultCount > 0);
+
+        // Quick-action commands
+        RemoveSelectedLinesCommand = new RelayCommand(OnRemoveSelectedLines, () => !string.IsNullOrWhiteSpace(SelectedText));
+        UndoCommand = new RelayCommand(OnUndo, () => _undoStack.Count > 0);
+        RedoCommand = new RelayCommand(OnRedo, () => _redoStack.Count > 0);
     }
+
+    #region Search & Replace Logic
+
+    private void OnToggleSearch()
+    {
+        IsSearchPanelVisible = !IsSearchPanelVisible;
+        if (!IsSearchPanelVisible)
+        {
+            SearchQuery = string.Empty;
+            ReplaceQuery = string.Empty;
+            SearchResultCount = 0;
+        }
+    }
+
+    private void UpdateSearchResultCount()
+    {
+        if (string.IsNullOrEmpty(SearchQuery) || string.IsNullOrEmpty(CleanedText))
+        {
+            SearchResultCount = 0;
+            return;
+        }
+
+        int count = 0;
+        int index = 0;
+        while ((index = CleanedText.IndexOf(SearchQuery, index, StringComparison.OrdinalIgnoreCase)) != -1)
+        {
+            count++;
+            index += SearchQuery.Length;
+        }
+        SearchResultCount = count;
+    }
+
+    private void OnFindNext()
+    {
+        // FindNext is primarily handled by the View via TextBox.Select()
+        // This command exists for CanExecute binding
+        StatusText = $"Found {SearchResultCount} matches for \"{SearchQuery}\"";
+    }
+
+    public void OnReplaceCurrent()
+    {
+        if (string.IsNullOrEmpty(SearchQuery) || string.IsNullOrEmpty(CleanedText))
+            return;
+
+        int index = CleanedText.IndexOf(SearchQuery, StringComparison.OrdinalIgnoreCase);
+        if (index >= 0)
+        {
+            CleanedText = CleanedText.Substring(0, index) + (ReplaceQuery ?? "") + CleanedText.Substring(index + SearchQuery.Length);
+            StatusText = $"Replaced 1 occurrence. {SearchResultCount} remaining.";
+        }
+    }
+
+    public void OnReplaceAll()
+    {
+        if (string.IsNullOrEmpty(SearchQuery) || string.IsNullOrEmpty(CleanedText))
+            return;
+
+        int previousCount = SearchResultCount;
+        CleanedText = Regex.Replace(CleanedText, Regex.Escape(SearchQuery), ReplaceQuery ?? "", RegexOptions.IgnoreCase);
+        StatusText = $"Replaced {previousCount} occurrences.";
+    }
+
+    #endregion
+
+    #region Quick-Action Logic
+
+    public void OnRemoveSelectedLines()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedText) || string.IsNullOrWhiteSpace(CleanedText))
+            return;
+
+        // Remove the selected text content from CleanedText
+        string textToRemove = SelectedText.Trim();
+        if (string.IsNullOrEmpty(textToRemove))
+            return;
+
+        int index = CleanedText.IndexOf(textToRemove, StringComparison.Ordinal);
+        if (index >= 0)
+        {
+            // Remove the text and any trailing newline
+            int endIndex = index + textToRemove.Length;
+            if (endIndex < CleanedText.Length && CleanedText[endIndex] == '\n')
+                endIndex++;
+            else if (endIndex < CleanedText.Length - 1 && CleanedText[endIndex] == '\r' && CleanedText[endIndex + 1] == '\n')
+                endIndex += 2;
+
+            CleanedText = CleanedText.Substring(0, index) + CleanedText.Substring(endIndex);
+            StatusText = "Removed selected lines.";
+        }
+    }
+
+    public void OnUndo()
+    {
+        if (_undoStack.Count == 0) return;
+
+        _isUndoRedoOperation = true;
+        _redoStack.Push(_cleanedText);
+        CleanedText = _undoStack.Pop();
+        _isUndoRedoOperation = false;
+        StatusText = "Undo performed.";
+    }
+
+    public void OnRedo()
+    {
+        if (_redoStack.Count == 0) return;
+
+        _isUndoRedoOperation = true;
+        _undoStack.Push(_cleanedText);
+        CleanedText = _redoStack.Pop();
+        _isUndoRedoOperation = false;
+        StatusText = "Redo performed.";
+    }
+
+    #endregion
+
+    #region Live Counters
+
+    private void UpdateCounters()
+    {
+        if (string.IsNullOrWhiteSpace(_cleanedText))
+        {
+            WordCount = 0;
+            LineCount = 0;
+            return;
+        }
+
+        WordCount = _cleanedText.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries).Length;
+        LineCount = _cleanedText.Split('\n').Length;
+    }
+
+    #endregion
+
+    #region Export Logic
 
     public void OnExportEpub()
     {
@@ -163,4 +439,6 @@ public class EditorViewModel : ViewModelBase
             }
         }
     }
+
+    #endregion
 }

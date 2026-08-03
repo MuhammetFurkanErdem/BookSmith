@@ -4,18 +4,20 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800">
+             d:DesignHeight="700" d:DesignWidth="900">
 
     <Grid Margin="24">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header / Back Action Bar -->
-        <Grid Grid.Row="0" Margin="0,0,0,16">
+        <!-- Row 0: Header / Back Action Bar -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -27,10 +29,14 @@
             <TextBlock Grid.Column="2" Text="{Binding StatusText}" FontSize="12" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
         </Grid>
 
-        <!-- Results Statistics Card -->
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+        <!-- Row 1: Results Statistics Card -->
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,12">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -40,20 +46,18 @@
 
                 <!-- Original Chars -->
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="Original Chars" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                    <TextBlock Text="Original" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
                     <TextBlock Text="{Binding OriginalCharCount, StringFormat={}{0:N0}}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
                 </StackPanel>
 
-                <!-- Divider 1 -->
                 <Border Grid.Column="1" Width="1" Background="{StaticResource BorderBrush}" Margin="8,2" />
 
                 <!-- Cleaned Chars -->
                 <StackPanel Grid.Column="2">
-                    <TextBlock Text="Cleaned Chars" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                    <TextBlock Text="Cleaned" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
                     <TextBlock Text="{Binding CleanedCharCount, StringFormat={}{0:N0}}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
                 </StackPanel>
 
-                <!-- Divider 2 -->
                 <Border Grid.Column="3" Width="1" Background="{StaticResource BorderBrush}" Margin="8,2" />
 
                 <!-- Reduction % -->
@@ -61,13 +65,133 @@
                     <TextBlock Text="Reduction" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
                     <TextBlock Text="{Binding ReductionPercentage, StringFormat={}{0:F1}%}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" />
                 </StackPanel>
+
+                <Border Grid.Column="5" Width="1" Background="{StaticResource BorderBrush}" Margin="8,2" />
+
+                <!-- Words -->
+                <StackPanel Grid.Column="6">
+                    <TextBlock Text="Words" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                    <TextBlock Text="{Binding WordCount, StringFormat={}{0:N0}}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
+                </StackPanel>
+
+                <Border Grid.Column="7" Width="1" Background="{StaticResource BorderBrush}" Margin="8,2" />
+
+                <!-- Lines -->
+                <StackPanel Grid.Column="8">
+                    <TextBlock Text="Lines" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                    <TextBlock Text="{Binding LineCount, StringFormat={}{0:N0}}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
+                </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Full-Screen Interactive Cleaned Text Editor -->
-        <DockPanel Grid.Row="2" Margin="0,0,0,16">
-            <TextBlock DockPanel.Dock="Top" Text="Interactive Cleaned Book Text Editor (Live Editing Enabled)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-            <TextBox Text="{Binding CleanedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+        <!-- Row 2: Quick-Action Toolbar -->
+        <Border Grid.Row="2" Background="#1A1A22" CornerRadius="6" Padding="10,6" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Content="🔍 Search &amp; Replace" Command="{Binding ToggleSearchCommand}" 
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center"/>
+
+                <Button Grid.Column="2" Content="✂ Remove Selection" Command="{Binding RemoveSelectedLinesCommand}" 
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center"/>
+
+                <Button Grid.Column="4" Content="↩ Undo" Command="{Binding UndoCommand}" 
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center"/>
+
+                <Button Grid.Column="6" Content="↪ Redo" Command="{Binding RedoCommand}" 
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Row 3: Search & Replace Panel (Conditional Visibility) -->
+        <Border Grid.Row="3" Background="#1E1E28" CornerRadius="6" Padding="12,10" Margin="0,0,0,8"
+                BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSearchPanelVisible}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="8" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Search Row -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="Search:" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" 
+                             Padding="6,4" FontSize="12" Background="#121215" Foreground="{StaticResource TextPrimaryBrush}" 
+                             BorderBrush="{StaticResource BorderBrush}" VerticalAlignment="Center"/>
+                    <Button Grid.Column="3" Content="Find Next" Command="{Binding FindNextCommand}" 
+                            Padding="8,4" FontSize="11" Height="26"/>
+                    <TextBlock Grid.Column="5" FontSize="11" Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0} matches">
+                                <Binding Path="SearchResultCount" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <Button Grid.Column="7" Content="✕" Command="{Binding ToggleSearchCommand}" 
+                            Padding="6,2" FontSize="12" Height="24" Width="24" 
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                </Grid>
+
+                <!-- Replace Row -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="Replace:" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" Text="{Binding ReplaceQuery, UpdateSourceTrigger=PropertyChanged}" 
+                             Padding="6,4" FontSize="12" Background="#121215" Foreground="{StaticResource TextPrimaryBrush}" 
+                             BorderBrush="{StaticResource BorderBrush}" VerticalAlignment="Center"/>
+                    <Button Grid.Column="3" Content="Replace" Command="{Binding ReplaceCurrentCommand}" 
+                            Padding="8,4" FontSize="11" Height="26"/>
+                    <Button Grid.Column="5" Content="Replace All" Command="{Binding ReplaceAllCommand}" 
+                            Padding="8,4" FontSize="11" Height="26" Style="{StaticResource PrimaryButtonStyle}"/>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Row 4: Full-Screen Interactive Cleaned Text Editor -->
+        <DockPanel Grid.Row="4" Margin="0,0,0,12">
+            <TextBlock DockPanel.Dock="Top" Text="Interactive Editor — Edit text before exporting" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+            <TextBox x:Name="EditorTextBox"
+                     Text="{Binding CleanedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                      IsReadOnly="False" 
                      TextWrapping="Wrap" 
                      AcceptsReturn="True" 
@@ -78,11 +202,12 @@
                      BorderBrush="{StaticResource BorderBrush}"
                      Padding="12" 
                      FontSize="13"
-                     FontFamily="Consolas, Segoe UI, sans-serif"/>
+                     FontFamily="Consolas, Segoe UI, sans-serif"
+                     SelectionChanged="EditorTextBox_SelectionChanged"/>
         </DockPanel>
 
-        <!-- Export Actions Bar -->
-        <Grid Grid.Row="3">
+        <!-- Row 5: Export Actions Bar -->
+        <Grid Grid.Row="5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="12" />
