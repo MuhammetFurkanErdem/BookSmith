@@ -157,18 +157,19 @@
 
 ---
 
-## 🚀 Upcoming Sprints (Roadmap)
-
-### Sprint 16 - EPUB Exporter Service (`IEpubExporter`) 👈 **NEXT STEP**
+### Sprint 16 - EPUB Exporter Service (`IEpubExporter`)
+**Status:** ✅ Completed  
 **Goal:** Package cleaned text into standard EPUB format.
-- **Tasks:**
-  - Implement `EpubExporter` in `BookSmith.Services/Export`.
-  - Support basic chapter detection/splitting and EPUB metadata embedding.
-  - Add unit tests for EPUB generation.
+- Created `EpubExportOptions` model in `BookSmith.Core`.
+- Implemented `EpubExporter` using .NET `ZipArchive` (`mimetype`, `container.xml`, `content.opf`, `toc.ncx`, `style.css`, `chapter1.xhtml`).
+- Registered `IEpubExporter` in `App.xaml.cs` IoC container.
+- Created `EpubExporterTests` unit test suite (26 total passing tests).
 
 ---
 
-### Sprint 17 - Persistent Settings & Configuration (`AppSettings`)
+## 🚀 Upcoming Sprints (Roadmap)
+
+### Sprint 17 - Persistent Settings & Configuration (`AppSettings`) 👈 **NEXT STEP**
 **Goal:** Allow users to toggle cleaning options via UI and persist settings across sessions.
 - **Tasks:**
   - Create `SettingsViewModel` and `SettingsView`.
