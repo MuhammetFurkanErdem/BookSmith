@@ -63,11 +63,6 @@ public class MainViewModel : ViewModelBase
             EditorViewModel.ReductionPercentage = result.ReductionPercentage;
             EditorViewModel.StatusText = $"Completed! Cleaned {result.CleanedCharCount:N0} chars ({result.ReductionPercentage:F1}% reduction).";
 
-            if (ImportViewModel.ExportEpub)
-            {
-                EditorViewModel.OnExportEpub();
-            }
-
             _navigationService.NavigateTo(EditorViewModel, 3);
         }
         catch (Exception ex)
