@@ -187,6 +187,65 @@
 
 ---
 
-## 🎉 Roadmap Complete (v1.0 Release Candidate)
+## 🎉 v1.0 Milestone Completed (Sprints 0 - 18)
+All v1.0 core sprints are fully implemented, tested, and verified.
 
-All core sprints (Sprint 0 through Sprint 18) are fully implemented, tested, and verified!
+---
+
+# 🚀 BookSmith v2.0 Roadmap (Next Generation UX & High-Consistency Cleaning)
+
+## Phase 1: Modern Multi-View Navigation & Interactive Editor
+
+### Sprint 19 - Modern UI Shell & Navigation Architecture (View-Switching) 👈 **NEXT STEP**
+**Goal:** Replace the single crowded view with a clean step-by-step navigation system (`File Selection` ➔ `Processing` ➔ `Editor & Export`).
+- **Tasks:**
+  - Create `NavigationService` and `NavigationViewModel`.
+  - Split layout into distinct views (`ImportView`, `ProcessingView`, `EditorView`).
+  - Add smooth transition animations between steps.
+
+### Sprint 20 - Interactive Full-Screen Editor (`EditorView` & `EditorViewModel`)
+**Goal:** Provide a dedicated full-text editor allowing live manual edits, search & replace, line removal, and character metrics before exporting.
+- **Tasks:**
+  - Build `EditorView` with line numbers, search & replace (`Ctrl+F`), and live inline text editing.
+  - Connect edited text directly to EPUB and TXT export generators.
+  - Add quick-action toolbar: "Remove Selected Line", "Clean Selected Text", "Undo/Redo".
+
+---
+
+## Phase 2: Enhanced Intelligence & Publisher Filtering
+
+### Sprint 21 - Automatic Front-Matter & Publisher Credit Filter (`IFrontMatterFilter`)
+**Goal:** Automatically detect and strip publisher copyright details, ISBNs, translator notes, and printing credits from front matter pages.
+- **Tasks:**
+  - Create `IFrontMatterFilter` in `BookSmith.Services`.
+  - Add pattern recognition for keywords ("PEGASUS YAYINLARI", "Baskı-Cilt", "Sertifika No", "Bestseller Roman", "Yayın Koordinatörü").
+  - Integrate into `BookPipeline`.
+
+### Sprint 22 - Chapter Structure & Table of Contents Detection (`IChapterDetector`)
+**Goal:** Detect chapter headings (`BÖLÜM 1`, `CHAPTER I`, Roman numerals `I`, `II`, `III`) and structure them in EPUB table of contents.
+- **Tasks:**
+  - Create `IChapterDetector` service.
+  - Add sidebar chapter list in `EditorView` allowing instant jump navigation to any chapter.
+  - Format chapter headings cleanly into EPUB `<h1>` tags and `toc.ncx`.
+
+---
+
+## Phase 3: Export Customization & User Presets
+
+### Sprint 23 - Advanced EPUB Styling & Cover Image Support
+**Goal:** Allow users to upload custom book cover images and customize EPUB font sizes/margins.
+- **Tasks:**
+  - Add cover image selection in UI.
+  - Package cover image into EPUB zip archive structure.
+
+### Sprint 24 - Cleaning Presets & Batch Processing Engine (`IBatchProcessor`)
+**Goal:** Save custom cleaning rule presets and batch-process multiple PDF books in sequence.
+- **Tasks:**
+  - Build preset manager (e.g., "ElevenReader Fiction", "Academic Papers").
+  - Support multi-file queue processing.
+
+### Sprint 25 - Performance Virtualization & v2.0 Final Polish
+**Goal:** Optimize text rendering for 1000+ page books and deliver final UI polish.
+- **Tasks:**
+  - Implement UI text virtualization for instant rendering of massive books.
+  - Perform full end-to-end regression testing.
