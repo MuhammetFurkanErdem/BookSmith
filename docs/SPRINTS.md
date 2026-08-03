@@ -167,17 +167,19 @@
 
 ---
 
-## 🚀 Upcoming Sprints (Roadmap)
-
-### Sprint 17 - Persistent Settings & Configuration (`AppSettings`) 👈 **NEXT STEP**
+### Sprint 17 - Persistent Settings & Configuration (`AppSettings`)
+**Status:** ✅ Completed  
 **Goal:** Allow users to toggle cleaning options via UI and persist settings across sessions.
-- **Tasks:**
-  - Create `SettingsViewModel` and `SettingsView`.
-  - Implement persistent storage in `BookSmith.Infrastructure/Settings/AppSettings.cs`.
+- Created `AppSettings` model in `BookSmith.Core/Models`.
+- Created `ISettingsService` interface and `JsonSettingsService` in `BookSmith.Infrastructure/Settings`.
+- Integrated `ISettingsService` into `MainViewModel` to auto-load and save checkbox options.
+- Created `SettingsServiceTests` unit test suite (28 total passing tests).
 
 ---
 
-### Sprint 18 - Export UI Integration & File Save Dialogs
+## 🚀 Upcoming Sprints (Roadmap)
+
+### Sprint 18 - Export UI Integration & File Save Dialogs 👈 **NEXT STEP**
 **Goal:** Provide "Export to EPUB" and "Export to TXT" save dialogs and completion notifications.
 - **Tasks:**
   - Add SaveFileDialog logic to UI.

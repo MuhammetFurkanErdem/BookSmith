@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using BookSmith.Core.Interfaces;
+using BookSmith.Core.Models;
 using BookSmith.UI.Commands;
 using Microsoft.Win32;
 
@@ -12,6 +13,7 @@ public class MainViewModel : ViewModelBase
     private readonly IPdfReader _pdfReader;
     private readonly ITextCleaner _textCleaner;
     private readonly IBookPipeline _bookPipeline;
+    private readonly ISettingsService? _settingsService;
 
     private string _filePath = string.Empty;
     private bool _removeHeaders = true;
@@ -127,49 +129,81 @@ public class MainViewModel : ViewModelBase
     public bool RemoveHeaders
     {
         get => _removeHeaders;
-        set => SetProperty(ref _removeHeaders, value);
+        set
+        {
+            if (SetProperty(ref _removeHeaders, value))
+                SaveSettings();
+        }
     }
 
     public bool RemoveFooters
     {
         get => _removeFooters;
-        set => SetProperty(ref _removeFooters, value);
+        set
+        {
+            if (SetProperty(ref _removeFooters, value))
+                SaveSettings();
+        }
     }
 
     public bool RemovePageNumbers
     {
         get => _removePageNumbers;
-        set => SetProperty(ref _removePageNumbers, value);
+        set
+        {
+            if (SetProperty(ref _removePageNumbers, value))
+                SaveSettings();
+        }
     }
 
     public bool FixBrokenWords
     {
         get => _fixBrokenWords;
-        set => SetProperty(ref _fixBrokenWords, value);
+        set
+        {
+            if (SetProperty(ref _fixBrokenWords, value))
+                SaveSettings();
+        }
     }
 
     public bool MergeWrappedLines
     {
         get => _mergeWrappedLines;
-        set => SetProperty(ref _mergeWrappedLines, value);
+        set
+        {
+            if (SetProperty(ref _mergeWrappedLines, value))
+                SaveSettings();
+        }
     }
 
     public bool SmartDialogueFormatting
     {
         get => _smartDialogueFormatting;
-        set => SetProperty(ref _smartDialogueFormatting, value);
+        set
+        {
+            if (SetProperty(ref _smartDialogueFormatting, value))
+                SaveSettings();
+        }
     }
 
     public bool ElevenReaderMode
     {
         get => _elevenReaderMode;
-        set => SetProperty(ref _elevenReaderMode, value);
+        set
+        {
+            if (SetProperty(ref _elevenReaderMode, value))
+                SaveSettings();
+        }
     }
 
     public bool ExportEpub
     {
         get => _exportEpub;
-        set => SetProperty(ref _exportEpub, value);
+        set
+        {
+            if (SetProperty(ref _exportEpub, value))
+                SaveSettings();
+        }
     }
 
     public double ProgressValue
@@ -187,14 +221,45 @@ public class MainViewModel : ViewModelBase
     public ICommand BrowseCommand { get; }
     public ICommand StartCleaningCommand { get; }
 
-    public MainViewModel(IPdfReader pdfReader, ITextCleaner textCleaner, IBookPipeline bookPipeline)
+    public MainViewModel(IPdfReader pdfReader, ITextCleaner textCleaner, IBookPipeline bookPipeline, ISettingsService? settingsService = null)
     {
         _pdfReader = pdfReader ?? throw new ArgumentNullException(nameof(pdfReader));
         _textCleaner = textCleaner ?? throw new ArgumentNullException(nameof(textCleaner));
         _bookPipeline = bookPipeline ?? throw new ArgumentNullException(nameof(bookPipeline));
+        _settingsService = settingsService;
+
+        if (_settingsService != null)
+        {
+            var saved = _settingsService.LoadSettings();
+            _removeHeaders = saved.RemoveHeaders;
+            _removeFooters = saved.RemoveFooters;
+            _removePageNumbers = saved.RemovePageNumbers;
+            _fixBrokenWords = saved.FixBrokenWords;
+            _mergeWrappedLines = saved.MergeWrappedLines;
+            _smartDialogueFormatting = saved.SmartDialogueFormatting;
+            _elevenReaderMode = saved.ElevenReaderMode;
+            _exportEpub = saved.ExportEpub;
+        }
 
         BrowseCommand = new RelayCommand(OnBrowse);
         StartCleaningCommand = new AsyncRelayCommand(OnStartCleaningAsync, CanStartCleaning);
+    }
+
+    private void SaveSettings()
+    {
+        if (_settingsService == null) return;
+        var settings = new AppSettings
+        {
+            RemoveHeaders = RemoveHeaders,
+            RemoveFooters = RemoveFooters,
+            RemovePageNumbers = RemovePageNumbers,
+            FixBrokenWords = FixBrokenWords,
+            MergeWrappedLines = MergeWrappedLines,
+            SmartDialogueFormatting = SmartDialogueFormatting,
+            ElevenReaderMode = ElevenReaderMode,
+            ExportEpub = ExportEpub
+        };
+        _settingsService.SaveSettings(settings);
     }
 
     private void OnBrowse()

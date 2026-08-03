@@ -6,6 +6,7 @@ using BookSmith.Services.Pdf;
 using BookSmith.Services.Cleaning;
 using BookSmith.Services.Pipeline;
 using BookSmith.Services.Export;
+using BookSmith.Infrastructure.Settings;
 using BookSmith.UI.ViewModels.Main;
 using BookSmith.UI.Shell;
 
@@ -28,6 +29,7 @@ public partial class App : Application
                 services.AddSingleton<ITextCleaner, TextCleaner>();
                 services.AddSingleton<IBookPipeline, BookPipeline>();
                 services.AddSingleton<IEpubExporter, EpubExporter>();
+                services.AddSingleton<ISettingsService, JsonSettingsService>();
 
                 // Register UI layers (ViewModels and Views)
                 services.AddSingleton<MainViewModel>();
