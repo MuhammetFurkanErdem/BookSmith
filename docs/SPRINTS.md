@@ -128,19 +128,19 @@
 
 ---
 
-## 🚀 Upcoming Sprints (Roadmap)
-
-### Sprint 13 - Book Pipeline Coordination Service (`IBookPipeline`) 👈 **NEXT STEP**
+### Sprint 13 - Book Pipeline Coordination Service (`IBookPipeline`)
+**Status:** ✅ Completed  
 **Goal:** Create a unified `BookPipeline` service coordinating PDF reading, header/footer removal, line merging, and text normalization.
-- **Tasks:**
-  - Define `IBookPipeline` interface and `BookPipeline` implementation in `BookSmith.Services`.
-  - Wire `IPdfReader.ReadAllPages` ➔ `ITextCleaner.RemoveHeadersAndFooters` ➔ `ITextCleaner.Clean`.
-  - Return detailed `BookProcessingResult` containing cleaned text and statistics (page count, original vs cleaned char count, reduction ratio).
-  - Add unit tests for `BookPipeline`.
+- Defined `BookProcessingResult` domain model with char counts and reduction ratio calculations.
+- Implemented `BookPipeline` service in `BookSmith.Services/Pipeline`.
+- Registered `IBookPipeline` service in `App.xaml.cs` IoC container.
+- Created `BookPipelineTests` unit test suite (12 total passing tests).
 
 ---
 
-### Sprint 14 - Pipeline UI Integration & Progress Reporting
+## 🚀 Upcoming Sprints (Roadmap)
+
+### Sprint 14 - Pipeline UI Integration & Progress Reporting 👈 **NEXT STEP**
 **Goal:** Connect `IBookPipeline` to `MainViewModel` and `MainView.xaml`.
 - **Tasks:**
   - Add `CleanBookCommand` to `MainViewModel`.
