@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using BookSmith.Core.Interfaces;
@@ -14,6 +16,7 @@ public class MainViewModel : ViewModelBase
     private readonly ITextCleaner _textCleaner;
     private readonly IBookPipeline _bookPipeline;
     private readonly ISettingsService? _settingsService;
+    private readonly IEpubExporter? _epubExporter;
 
     private string _filePath = string.Empty;
     private bool _removeHeaders = true;
@@ -99,7 +102,13 @@ public class MainViewModel : ViewModelBase
     public bool IsCleaned
     {
         get => _isCleaned;
-        set => SetProperty(ref _isCleaned, value);
+        set
+        {
+            if (SetProperty(ref _isCleaned, value))
+            {
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
     }
 
     public int OriginalCharCount
@@ -220,13 +229,21 @@ public class MainViewModel : ViewModelBase
 
     public ICommand BrowseCommand { get; }
     public ICommand StartCleaningCommand { get; }
+    public ICommand ExportEpubCommand { get; }
+    public ICommand ExportTxtCommand { get; }
 
-    public MainViewModel(IPdfReader pdfReader, ITextCleaner textCleaner, IBookPipeline bookPipeline, ISettingsService? settingsService = null)
+    public MainViewModel(
+        IPdfReader pdfReader,
+        ITextCleaner textCleaner,
+        IBookPipeline bookPipeline,
+        ISettingsService? settingsService = null,
+        IEpubExporter? epubExporter = null)
     {
         _pdfReader = pdfReader ?? throw new ArgumentNullException(nameof(pdfReader));
         _textCleaner = textCleaner ?? throw new ArgumentNullException(nameof(textCleaner));
         _bookPipeline = bookPipeline ?? throw new ArgumentNullException(nameof(bookPipeline));
         _settingsService = settingsService;
+        _epubExporter = epubExporter;
 
         if (_settingsService != null)
         {
@@ -243,6 +260,8 @@ public class MainViewModel : ViewModelBase
 
         BrowseCommand = new RelayCommand(OnBrowse);
         StartCleaningCommand = new AsyncRelayCommand(OnStartCleaningAsync, CanStartCleaning);
+        ExportEpubCommand = new RelayCommand(OnExportEpub, CanExport);
+        ExportTxtCommand = new RelayCommand(OnExportTxt, CanExport);
     }
 
     private void SaveSettings()
@@ -299,6 +318,89 @@ public class MainViewModel : ViewModelBase
         return !string.IsNullOrWhiteSpace(FilePath) && !IsProcessing;
     }
 
+    private bool CanExport()
+    {
+        return IsCleaned && !string.IsNullOrWhiteSpace(CleanedText) && !IsProcessing;
+    }
+
+    public void OnExportEpub()
+    {
+        if (string.IsNullOrWhiteSpace(CleanedText))
+            return;
+
+        string defaultFileName = string.IsNullOrWhiteSpace(FileName)
+            ? "CleanedBook.epub"
+            : Path.GetFileNameWithoutExtension(FileName) + "_Cleaned.epub";
+
+        var saveFileDialog = new SaveFileDialog
+        {
+            Filter = "EPUB Book (*.epub)|*.epub",
+            Title = "Export Cleaned Book as EPUB",
+            FileName = defaultFileName
+        };
+
+        if (saveFileDialog.ShowDialog() == true)
+        {
+            try
+            {
+                var options = new EpubExportOptions
+                {
+                    Title = string.IsNullOrWhiteSpace(FileName) ? "Cleaned Book" : Path.GetFileNameWithoutExtension(FileName),
+                    Author = "BookSmith",
+                    Language = "tr",
+                    OutputPath = saveFileDialog.FileName,
+                    ContentText = CleanedText
+                };
+
+                if (_epubExporter != null)
+                {
+                    _epubExporter.Export(options);
+                }
+                else
+                {
+                    var exporter = new BookSmith.Services.Export.EpubExporter();
+                    exporter.Export(options);
+                }
+
+                StatusText = $"Successfully exported EPUB to: {saveFileDialog.SafeFileName}";
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"Error exporting EPUB: {ex.Message}";
+            }
+        }
+    }
+
+    public void OnExportTxt()
+    {
+        if (string.IsNullOrWhiteSpace(CleanedText))
+            return;
+
+        string defaultFileName = string.IsNullOrWhiteSpace(FileName)
+            ? "CleanedBook.txt"
+            : Path.GetFileNameWithoutExtension(FileName) + "_Cleaned.txt";
+
+        var saveFileDialog = new SaveFileDialog
+        {
+            Filter = "Text Document (*.txt)|*.txt",
+            Title = "Export Cleaned Book as TXT",
+            FileName = defaultFileName
+        };
+
+        if (saveFileDialog.ShowDialog() == true)
+        {
+            try
+            {
+                File.WriteAllText(saveFileDialog.FileName, CleanedText, Encoding.UTF8);
+                StatusText = $"Successfully exported TXT to: {saveFileDialog.SafeFileName}";
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"Error exporting TXT: {ex.Message}";
+            }
+        }
+    }
+
     private async Task OnStartCleaningAsync()
     {
         if (string.IsNullOrWhiteSpace(FilePath))
@@ -326,6 +428,11 @@ public class MainViewModel : ViewModelBase
             ProgressValue = 100;
             IsCleaned = true;
             StatusText = $"Completed! Cleaned {CleanedCharCount:N0} chars ({ReductionPercentage:F1}% reduction).";
+
+            if (ExportEpub)
+            {
+                OnExportEpub();
+            }
         }
         catch (Exception ex)
         {

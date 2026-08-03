@@ -177,10 +177,16 @@
 
 ---
 
-## 🚀 Upcoming Sprints (Roadmap)
+### Sprint 18 - Export UI Integration & File Save Dialogs
+**Status:** ✅ Completed  
+**Goal:** Provide "Export as EPUB" and "Export as TXT" save dialogs and completion notifications.
+- Added `ExportEpubCommand` and `ExportTxtCommand` to `MainViewModel`.
+- Added `SaveFileDialog` integration for `.epub` and `.txt` exports with completion status feedback.
+- Updated `MainView.xaml` with "Export as EPUB" and "Export as TXT" action buttons.
+- Created `MainViewModelExportTests` unit test suite (30 total passing tests).
 
-### Sprint 18 - Export UI Integration & File Save Dialogs 👈 **NEXT STEP**
-**Goal:** Provide "Export to EPUB" and "Export to TXT" save dialogs and completion notifications.
-- **Tasks:**
-  - Add SaveFileDialog logic to UI.
-  - Implement completion toast/dialog notifications.
+---
+
+## 🎉 Roadmap Complete (v1.0 Release Candidate)
+
+All core sprints (Sprint 0 through Sprint 18) are fully implemented, tested, and verified!

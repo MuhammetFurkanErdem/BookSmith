@@ -329,6 +329,26 @@
                              Background="#121215"
                              BorderBrush="{StaticResource BorderBrush}"
                              Padding="8" />
+
+                    <!-- Export Action Buttons (Visible when IsCleaned == True) -->
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0"
+                                Content="Export as EPUB"
+                                Command="{Binding ExportEpubCommand}"
+                                Height="38"
+                                Style="{StaticResource PrimaryButtonStyle}" />
+
+                        <Button Grid.Column="2"
+                                Content="Export as TXT"
+                                Command="{Binding ExportTxtCommand}"
+                                Height="38" />
+                    </Grid>
                 </StackPanel>
             </StackPanel>
         </Border>
