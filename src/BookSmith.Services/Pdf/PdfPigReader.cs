@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using BookSmith.Core.Interfaces;
 using BookSmith.Core.Models;
@@ -48,5 +49,27 @@ public class PdfPigReader : IPdfReader
             }
             return string.Empty;
         }
+    }
+
+    public IReadOnlyList<string> ReadAllPages(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
+
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException("PDF file not found.", filePath);
+
+        var pages = new List<string>();
+
+        using (var document = PdfDocument.Open(filePath))
+        {
+            for (int i = 1; i <= document.NumberOfPages; i++)
+            {
+                var page = document.GetPage(i);
+                pages.Add(page.Text ?? string.Empty);
+            }
+        }
+
+        return pages;
     }
 }
