@@ -23,7 +23,7 @@ public partial class App : Application
             {
                 // Register Core/Service layers
                 services.AddSingleton<IPdfReader, PdfPigReader>();
-                services.AddSingleton<ITextCleaner, BasicTextCleaner>();
+                services.AddSingleton<ITextCleaner, TextCleaner>();
 
                 // Register UI layers (ViewModels and Views)
                 services.AddSingleton<MainViewModel>();
