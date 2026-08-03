@@ -54,11 +54,22 @@ public partial class App : Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
-        using (_host)
+        try
         {
-            await _host.StopAsync();
+            using (_host)
+            {
+                await _host.StopAsync(TimeSpan.FromSeconds(2));
+            }
         }
-
-        base.OnExit(e);
+        catch
+        {
+            // Swallow any shutdown exceptions
+        }
+        finally
+        {
+            base.OnExit(e);
+            // Force-terminate the process to release all DLL file locks
+            System.Environment.Exit(0);
+        }
     }
 }
