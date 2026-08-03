@@ -101,6 +101,7 @@
                              AcceptsReturn="True" 
                              VerticalScrollBarVisibility="Auto" 
                              Background="#121215"
+                             Foreground="{StaticResource TextPrimaryBrush}"
                              BorderBrush="{StaticResource BorderBrush}"
                              Padding="8" />
                 </StackPanel>

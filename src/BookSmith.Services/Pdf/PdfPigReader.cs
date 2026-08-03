@@ -45,12 +45,17 @@ public class PdfPigReader : IPdfReader
 
         using (var document = PdfDocument.Open(filePath))
         {
-            if (document.NumberOfPages >= 1)
+            int maxPagesToScan = Math.Min(5, document.NumberOfPages);
+            for (int i = 1; i <= maxPagesToScan; i++)
             {
-                var page = document.GetPage(1);
-                return ExtractPageText(page);
+                var page = document.GetPage(i);
+                string text = ExtractPageText(page);
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    return text;
+                }
             }
-            return string.Empty;
+            return "No text content found on initial pages.";
         }
     }
 
