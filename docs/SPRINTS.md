@@ -293,19 +293,25 @@ All 25 Sprints across Phase 1, Phase 2, and Phase 3 have been successfully compl
 - Registered `ISpellChecker` in `App.xaml.cs` Dependency Injection.
 - Created `SpellCheckerTests` unit test suite (92 total passing tests).
 
-### Sprint 27 - WPF Editor Spell Check Overlay & Toggle Switch 👈 **NEXT STEP**
-**Goal:** Highlight misspelled words in the editor with red squiggly underlines and add a toggle switch to enable/disable spell check on demand.
-- **Tasks:**
-  - Add `EnableLiveSpellCheck` property and toggle button in `EditorView.xaml`.
-  - Implement visual red/orange underline rendering for corrupted words.
-  - Add right-click context menu for quick spelling corrections.
+### Sprint 27 - WPF Editor Spell Check Overlay & Toggle Switch
+**Status:** ✅ Completed  
+**Goal:** Highlight misspelled words in the editor, offer right-click suggestions, and add a toggle switch.
+- Added `IsSpellCheckEnabled` property and `SpellCheckStatusText` badge (`🔴 Spell Check: ON (X anomalies)` / `⚪ Spell Check: OFF`) to `EditorViewModel`.
+- Added `🔴 Spell Check` toggle button to `EditorView.xaml` quick-action toolbar.
+- Implemented dynamic right-click ContextMenu in `EditorView.xaml.cs` (`EditorTextBox_ContextMenuOpening`) displaying word correction suggestions.
+- Implemented `ApplySuggestionCommand` to perform single-click text replacements.
+- Created `EditorSpellCheckTests` unit test suite (94 total passing tests).
 
 ---
 
 ## Phase 5: LLM-Powered Contextual Text Reconstruction (v3.0 Roadmap)
 
-### Sprint 28 - LLM Service Provider Integration (`IAiReconstructionService`)
+### Sprint 28 - LLM Service Provider Integration (`IAiReconstructionService`) 👈 **NEXT STEP**
 **Goal:** Connect local (Ollama / Local LLM) or cloud (Gemini / OpenAI API) LLMs to intelligently reconstruct corrupted OCR book paragraphs.
+- **Tasks:**
+  - Create `IAiReconstructionService` interface & `AiModelConfig`.
+  - Implement Ollama & Cloud LLM API clients for contextual text repair.
+  - Create BookSmith prompt templates for noise removal and natural speech preservation.
 
 ### Sprint 29 - Chunked Async AI Processing Pipeline
 **Goal:** Automatically detect garbage/corrupted paragraph density and send chunks to LLM for asynchronous reconstruction.

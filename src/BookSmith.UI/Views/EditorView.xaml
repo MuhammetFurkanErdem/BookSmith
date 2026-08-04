@@ -96,6 +96,8 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="8" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -110,6 +112,10 @@
 
                 <Button Grid.Column="6" Content="↪ Redo" Command="{Binding RedoCommand}" 
                         Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Redo Edit (Ctrl+Y)"/>
+
+                <Button Grid.Column="8" Content="{Binding SpellCheckStatusText}" Command="{Binding ToggleSpellCheckCommand}" 
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Toggle Live Spell Check ON/OFF"
+                        Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold"/>
             </Grid>
         </Border>
 
@@ -277,7 +283,8 @@
                          Padding="12" 
                          FontSize="13"
                          FontFamily="Consolas, Segoe UI, sans-serif"
-                         SelectionChanged="EditorTextBox_SelectionChanged"/>
+                         SelectionChanged="EditorTextBox_SelectionChanged"
+                         ContextMenuOpening="EditorTextBox_ContextMenuOpening"/>
             </DockPanel>
         </Grid>
 

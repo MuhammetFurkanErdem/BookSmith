@@ -15,6 +15,7 @@ namespace BookSmith.UI.ViewModels.Main;
 public class EditorViewModel : ViewModelBase
 {
     private readonly IEpubExporter? _epubExporter;
+    private readonly ISpellChecker? _spellChecker;
 
     private string _fileName = string.Empty;
     private string _cleanedText = string.Empty;
@@ -56,6 +57,10 @@ public class EditorViewModel : ViewModelBase
 
     // Chapter navigation
     private IReadOnlyList<ChapterInfo> _chapters = Array.Empty<ChapterInfo>();
+
+    // Live Spell Check State
+    private bool _isSpellCheckEnabled = true;
+    private System.Collections.ObjectModel.ObservableCollection<MisspelledWord> _misspelledWords = new();
 
     /// <summary>Event fired when a chapter is selected. Args: charOffset to scroll to.</summary>
     public event Action<int>? ScrollToChapterRequested;
@@ -101,6 +106,9 @@ public class EditorViewModel : ViewModelBase
 
                 // Update live counters
                 UpdateCounters();
+
+                // Run live spell check if enabled
+                RunSpellCheck();
 
                 // Update search results if search is active
                 if (IsSearchPanelVisible && !string.IsNullOrEmpty(SearchQuery))
@@ -230,6 +238,39 @@ public class EditorViewModel : ViewModelBase
 
     #endregion
 
+    #region Spell Check Properties
+
+    public bool IsSpellCheckEnabled
+    {
+        get => _isSpellCheckEnabled;
+        set
+        {
+            if (SetProperty(ref _isSpellCheckEnabled, value))
+            {
+                RunSpellCheck();
+                OnPropertyChanged(nameof(SpellCheckStatusText));
+            }
+        }
+    }
+
+    public System.Collections.ObjectModel.ObservableCollection<MisspelledWord> MisspelledWords
+    {
+        get => _misspelledWords;
+        set
+        {
+            if (SetProperty(ref _misspelledWords, value))
+                OnPropertyChanged(nameof(MisspelledWordCount));
+        }
+    }
+
+    public int MisspelledWordCount => MisspelledWords.Count;
+
+    public string SpellCheckStatusText => IsSpellCheckEnabled
+        ? $"🔴 Spell Check: ON ({MisspelledWordCount} anomalies)"
+        : "⚪ Spell Check: OFF";
+
+    #endregion
+
     #region EPUB Export Settings Properties
 
     public string CoverImagePath
@@ -271,6 +312,10 @@ public class EditorViewModel : ViewModelBase
     public ICommand BackCommand { get; }
     public ICommand JumpToChapterCommand { get; }
 
+    // Spell Check commands
+    public ICommand ToggleSpellCheckCommand { get; }
+    public ICommand ApplySuggestionCommand { get; }
+
     // EPUB customization commands
     public ICommand ToggleEpubPanelCommand { get; }
     public ICommand SelectCoverCommand { get; }
@@ -289,9 +334,10 @@ public class EditorViewModel : ViewModelBase
 
     #endregion
 
-    public EditorViewModel(IEpubExporter? epubExporter = null)
+    public EditorViewModel(IEpubExporter? epubExporter = null, ISpellChecker? spellChecker = null)
     {
         _epubExporter = epubExporter;
+        _spellChecker = spellChecker;
 
         // Export commands
         ExportEpubCommand = new RelayCommand(OnExportEpub, () => !string.IsNullOrWhiteSpace(CleanedText));
@@ -316,6 +362,10 @@ public class EditorViewModel : ViewModelBase
         ToggleEpubPanelCommand = new RelayCommand(() => IsEpubPanelVisible = !IsEpubPanelVisible);
         SelectCoverCommand = new RelayCommand(OnSelectCover);
         ClearCoverCommand = new RelayCommand(() => CoverImagePath = string.Empty);
+
+        // Spell Check commands
+        ToggleSpellCheckCommand = new RelayCommand(() => IsSpellCheckEnabled = !IsSpellCheckEnabled);
+        ApplySuggestionCommand = new RelayCommand<Tuple<string, string>>(OnApplySuggestion);
     }
 
     #region Search & Replace Logic
@@ -643,6 +693,63 @@ public class EditorViewModel : ViewModelBase
         if (openFileDialog.ShowDialog() == true)
         {
             CoverImagePath = openFileDialog.FileName;
+        }
+    }
+
+    #endregion
+
+    #region Spell Check Logic
+
+    public void RunSpellCheck()
+    {
+        if (!IsSpellCheckEnabled || _spellChecker == null || string.IsNullOrWhiteSpace(CleanedText))
+        {
+            MisspelledWords = new System.Collections.ObjectModel.ObservableCollection<MisspelledWord>();
+            OnPropertyChanged(nameof(SpellCheckStatusText));
+            return;
+        }
+
+        Task.Run(() =>
+        {
+            var list = _spellChecker.FindMisspelledWords(CleanedText);
+            var collection = new System.Collections.ObjectModel.ObservableCollection<MisspelledWord>(list);
+
+            var app = System.Windows.Application.Current;
+            if (app != null)
+            {
+                app.Dispatcher.InvokeAsync(() =>
+                {
+                    MisspelledWords = collection;
+                    OnPropertyChanged(nameof(SpellCheckStatusText));
+                });
+            }
+            else
+            {
+                MisspelledWords = collection;
+                OnPropertyChanged(nameof(SpellCheckStatusText));
+            }
+        });
+    }
+
+    public IReadOnlyList<string> GetSuggestionsForWord(string word)
+    {
+        return _spellChecker?.GetSuggestions(word) ?? Array.Empty<string>();
+    }
+
+    private void OnApplySuggestion(Tuple<string, string>? args)
+    {
+        if (args == null || string.IsNullOrEmpty(args.Item1) || string.IsNullOrEmpty(args.Item2)) return;
+
+        string target = args.Item1;
+        string replacement = args.Item2;
+
+        if (string.IsNullOrEmpty(CleanedText)) return;
+
+        int index = CleanedText.IndexOf(target, StringComparison.Ordinal);
+        if (index >= 0)
+        {
+            CleanedText = CleanedText.Substring(0, index) + replacement + CleanedText.Substring(index + target.Length);
+            StatusText = $"Replaced '{target}' with '{replacement}'.";
         }
     }
 

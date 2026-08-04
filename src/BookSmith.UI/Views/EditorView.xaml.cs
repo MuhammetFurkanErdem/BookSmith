@@ -110,4 +110,56 @@ public partial class EditorView : UserControl
             vm.SelectedText = textBox.SelectedText;
         }
     }
+
+    private void EditorTextBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (DataContext is not EditorViewModel vm || EditorTextBox == null || !vm.IsSpellCheckEnabled)
+            return;
+
+        int caretIndex = EditorTextBox.CaretIndex;
+        string text = EditorTextBox.Text;
+        if (string.IsNullOrEmpty(text) || caretIndex < 0 || caretIndex > text.Length)
+            return;
+
+        // Find word boundaries under caret
+        int start = caretIndex;
+        while (start > 0 && char.IsLetterOrDigit(text[start - 1]))
+            start--;
+
+        int end = caretIndex;
+        while (end < text.Length && char.IsLetterOrDigit(text[end]))
+            end++;
+
+        if (end <= start) return;
+
+        string targetWord = text.Substring(start, end - start);
+        var suggestions = vm.GetSuggestionsForWord(targetWord);
+
+        var contextMenu = new ContextMenu();
+
+        if (suggestions.Count > 0)
+        {
+            var headerItem = new MenuItem { Header = $"💡 Suggestions for '{targetWord}':", IsEnabled = false, FontWeight = FontWeights.Bold };
+            contextMenu.Items.Add(headerItem);
+            contextMenu.Items.Add(new Separator());
+
+            foreach (string suggestion in suggestions)
+            {
+                string repl = suggestion;
+                var item = new MenuItem { Header = $"✔ Use '{repl}'", FontWeight = FontWeights.SemiBold };
+                item.Click += (s, args) =>
+                {
+                    vm.ApplySuggestionCommand.Execute(new System.Tuple<string, string>(targetWord, repl));
+                };
+                contextMenu.Items.Add(item);
+            }
+            contextMenu.Items.Add(new Separator());
+        }
+
+        var toggleItem = new MenuItem { Header = vm.IsSpellCheckEnabled ? "🔴 Disable Spell Check" : "🟢 Enable Spell Check" };
+        toggleItem.Click += (s, args) => vm.ToggleSpellCheckCommand.Execute(null);
+        contextMenu.Items.Add(toggleItem);
+
+        EditorTextBox.ContextMenu = contextMenu;
+    }
 }
