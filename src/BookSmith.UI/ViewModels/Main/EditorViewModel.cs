@@ -38,7 +38,7 @@ public class EditorViewModel : ViewModelBase
     // Undo/Redo state
     private readonly Stack<string> _undoStack = new();
     private readonly Stack<string> _redoStack = new();
-    private const int MaxUndoHistory = 20;
+    private const int MaxUndoHistory = 10;
     private bool _isUndoRedoOperation = false;
 
     // Selection state
@@ -455,6 +455,8 @@ public class EditorViewModel : ViewModelBase
 
     #region Live Counters
 
+    private System.Threading.CancellationTokenSource? _counterCts;
+
     private void UpdateCounters()
     {
         if (string.IsNullOrWhiteSpace(_cleanedText))
@@ -464,8 +466,75 @@ public class EditorViewModel : ViewModelBase
             return;
         }
 
-        WordCount = _cleanedText.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries).Length;
-        LineCount = _cleanedText.Split('\n').Length;
+        string textToCount = _cleanedText;
+
+        var app = System.Windows.Application.Current;
+        if (app == null)
+        {
+            // Unit test environment: run synchronously
+            int lines = 1;
+            int words = 0;
+            bool inWord = false;
+
+            for (int i = 0; i < textToCount.Length; i++)
+            {
+                char c = textToCount[i];
+                if (c == '\n') lines++;
+                if (char.IsWhiteSpace(c)) inWord = false;
+                else if (!inWord) { inWord = true; words++; }
+            }
+
+            WordCount = words;
+            LineCount = lines;
+            return;
+        }
+
+        _counterCts?.Cancel();
+        _counterCts = new System.Threading.CancellationTokenSource();
+        var token = _counterCts.Token;
+
+        Task.Run(() =>
+        {
+            if (token.IsCancellationRequested) return;
+
+            int lines = 1;
+            int words = 0;
+            bool inWord = false;
+
+            for (int i = 0; i < textToCount.Length; i++)
+            {
+                if (token.IsCancellationRequested) return;
+
+                char c = textToCount[i];
+                if (c == '\n')
+                    lines++;
+
+                if (char.IsWhiteSpace(c))
+                {
+                    inWord = false;
+                }
+                else if (!inWord)
+                {
+                    inWord = true;
+                    words++;
+                }
+            }
+
+            if (!token.IsCancellationRequested)
+            {
+                int finalWords = words;
+                int finalLines = lines;
+
+                app.Dispatcher.InvokeAsync(() =>
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        WordCount = finalWords;
+                        LineCount = finalLines;
+                    }
+                });
+            }
+        }, token);
     }
 
     #endregion

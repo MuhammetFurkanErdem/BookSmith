@@ -100,16 +100,16 @@
                 </Grid.ColumnDefinitions>
 
                 <Button Grid.Column="0" Content="🔍 Search &amp; Replace" Command="{Binding ToggleSearchCommand}" 
-                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center"/>
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Search &amp; Replace (Ctrl+F)"/>
 
                 <Button Grid.Column="2" Content="✂ Remove Selection" Command="{Binding RemoveSelectedLinesCommand}" 
-                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center"/>
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Remove Selected Lines"/>
 
                 <Button Grid.Column="4" Content="↩ Undo" Command="{Binding UndoCommand}" 
-                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center"/>
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Undo Edit (Ctrl+Z)"/>
 
                 <Button Grid.Column="6" Content="↪ Redo" Command="{Binding RedoCommand}" 
-                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center"/>
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Redo Edit (Ctrl+Y)"/>
             </Grid>
         </Border>
 
