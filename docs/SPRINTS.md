@@ -315,12 +315,19 @@ All 25 Sprints across Phase 1, Phase 2, and Phase 3 have been successfully compl
 - Registered `IAiReconstructionService` in `App.xaml.cs` Dependency Injection.
 - Created `AiReconstructionServiceTests` unit test suite (98 total passing tests).
 
-### Sprint 29 - Chunked Async AI Processing Pipeline 👈 **NEXT STEP**
+### Sprint 29 - Chunked Async AI Processing Pipeline
+**Status:** ✅ Completed  
 **Goal:** Automatically detect garbage/corrupted paragraph density and send chunks to LLM for asynchronous reconstruction.
+- Created `GarbageDensityDetector` in `BookSmith.Services/Cleaning` to calculate character noise ratios (`\uFFFD`, OCR spacing collapse, invalid symbols).
+- Created `AiTextChunker` in `BookSmith.Services/Cleaning` for chunking book text and routing corrupted paragraphs or inline author headers to `IAiReconstructionService`.
+- Created `AiChunkerTests` unit test suite (100 total passing tests).
+
+### Sprint 30 - AI Correction Assistant & Diff View 👈 **NEXT STEP**
+**Goal:** Interactive side-by-side comparison (Original vs AI Reconstructed) in the editor with single-click paragraph approval and v3.0 final release polish.
 - **Tasks:**
-  - Build `GarbageCharacterDensity` detector to identify paragraphs with high OCR corruption.
-  - Implement chunking engine to send corrupted sections to `IAiReconstructionService`.
-  - Integrate AI reconstruction step in `BookPipeline.Process()`.
+  - Add "🤖 AI Fix Selected Paragraph" and "AI Settings" panel in `EditorView.xaml`.
+  - Implement side-by-side Diff View comparison modal.
+  - Finalize BookSmith v3.0 release polish.
 
 ### Sprint 29 - Chunked Async AI Processing Pipeline
 **Goal:** Automatically detect garbage/corrupted paragraph density and send chunks to LLM for asynchronous reconstruction.
