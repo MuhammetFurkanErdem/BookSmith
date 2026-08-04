@@ -7,10 +7,42 @@ namespace BookSmith.UI.Views;
 
 public partial class EditorView : UserControl
 {
+    private EditorViewModel? _currentVm;
+
     public EditorView()
     {
         InitializeComponent();
         PreviewKeyDown += EditorView_PreviewKeyDown;
+        DataContextChanged += EditorView_DataContextChanged;
+    }
+
+    private void EditorView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        // Unsubscribe from old VM
+        if (_currentVm != null)
+        {
+            _currentVm.FindNextRequested -= OnFindNextRequested;
+        }
+
+        // Subscribe to new VM
+        _currentVm = DataContext as EditorViewModel;
+        if (_currentVm != null)
+        {
+            _currentVm.FindNextRequested += OnFindNextRequested;
+        }
+    }
+
+    /// <summary>Called by ViewModel when Find Next locates a match — selects & scrolls to it in the TextBox.</summary>
+    private void OnFindNextRequested(int startIndex, int length)
+    {
+        if (EditorTextBox == null) return;
+
+        EditorTextBox.Focus();
+        EditorTextBox.Select(startIndex, length);
+
+        // Scroll the TextBox so the selection is visible
+        EditorTextBox.ScrollToLine(
+            EditorTextBox.GetLineIndexFromCharacterIndex(startIndex));
     }
 
     private void EditorView_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -38,6 +70,21 @@ public partial class EditorView : UserControl
                 e.Handled = true;
             }
         }
+        else if (e.Key == Key.Enter && IsSearchFocused())
+        {
+            // Enter in search box triggers Find Next
+            if (vm.FindNextCommand.CanExecute(null))
+            {
+                vm.FindNextCommand.Execute(null);
+                e.Handled = true;
+            }
+        }
+    }
+
+    private bool IsSearchFocused()
+    {
+        var focused = Keyboard.FocusedElement as FrameworkElement;
+        return focused != null && focused != EditorTextBox;
     }
 
     private void EditorTextBox_SelectionChanged(object sender, RoutedEventArgs e)

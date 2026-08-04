@@ -29,6 +29,11 @@ public class EditorViewModel : ViewModelBase
     private string _replaceQuery = string.Empty;
     private bool _isSearchPanelVisible = false;
     private int _searchResultCount = 0;
+    private int _currentMatchIndex = -1;
+    private string _searchDisplayText = string.Empty;
+
+    /// <summary>Event fired when Find Next locates a match. Args: (startIndex, length)</summary>
+    public event Action<int, int>? FindNextRequested;
 
     // Undo/Redo state
     private readonly Stack<string> _undoStack = new();
@@ -159,6 +164,18 @@ public class EditorViewModel : ViewModelBase
         set => SetProperty(ref _searchResultCount, value);
     }
 
+    public int CurrentMatchIndex
+    {
+        get => _currentMatchIndex;
+        set => SetProperty(ref _currentMatchIndex, value);
+    }
+
+    public string SearchDisplayText
+    {
+        get => _searchDisplayText;
+        set => SetProperty(ref _searchDisplayText, value);
+    }
+
     #endregion
 
     #region Selection & Counter Properties
@@ -247,6 +264,8 @@ public class EditorViewModel : ViewModelBase
         if (string.IsNullOrEmpty(SearchQuery) || string.IsNullOrEmpty(CleanedText))
         {
             SearchResultCount = 0;
+            CurrentMatchIndex = -1;
+            SearchDisplayText = "";
             return;
         }
 
@@ -258,13 +277,32 @@ public class EditorViewModel : ViewModelBase
             index += SearchQuery.Length;
         }
         SearchResultCount = count;
+        CurrentMatchIndex = count > 0 ? 0 : -1;
+        SearchDisplayText = count > 0 ? $"1 of {count}" : "No matches";
     }
 
     private void OnFindNext()
     {
-        // FindNext is primarily handled by the View via TextBox.Select()
-        // This command exists for CanExecute binding
-        StatusText = $"Found {SearchResultCount} matches for \"{SearchQuery}\"";
+        if (string.IsNullOrEmpty(SearchQuery) || string.IsNullOrEmpty(CleanedText) || SearchResultCount == 0)
+            return;
+
+        // Find all match positions
+        var positions = new System.Collections.Generic.List<int>();
+        int idx = 0;
+        while ((idx = CleanedText.IndexOf(SearchQuery, idx, StringComparison.OrdinalIgnoreCase)) != -1)
+        {
+            positions.Add(idx);
+            idx += SearchQuery.Length;
+        }
+
+        if (positions.Count == 0) return;
+
+        // Advance to next match (wrap around)
+        CurrentMatchIndex = (CurrentMatchIndex + 1) % positions.Count;
+        SearchDisplayText = $"{CurrentMatchIndex + 1} of {positions.Count}";
+
+        // Fire event so View can select the text in the TextBox
+        FindNextRequested?.Invoke(positions[CurrentMatchIndex], SearchQuery.Length);
     }
 
     public void OnReplaceCurrent()
