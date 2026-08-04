@@ -231,18 +231,21 @@ All v1.0 core sprints are fully implemented, tested, and verified.
 - Added `RemoveFrontMatter` toggle to `AppSettings`, `ImportViewModel`, and `ImportView.xaml` (green checkbox).
 - Created `FrontMatterFilterTests` unit test suite (71 total passing tests).
 
-### Sprint 22 - Chapter Structure & Table of Contents Detection (`IChapterDetector`) 👈 **NEXT STEP**
+### Sprint 22 - Chapter Structure & Table of Contents Detection (`IChapterDetector`)
+**Status:** ✅ Completed  
 **Goal:** Detect chapter headings (`BÖLÜM 1`, `CHAPTER I`, Roman numerals `I`, `II`, `III`) and structure them in EPUB table of contents.
-- **Tasks:**
-  - Create `IChapterDetector` service.
-  - Add sidebar chapter list in `EditorView` allowing instant jump navigation to any chapter.
-  - Format chapter headings cleanly into EPUB `<h1>` tags and `toc.ncx`.
+- Created `IChapterDetector` interface in `BookSmith.Core/Interfaces` and `ChapterInfo` domain model.
+- Implemented `ChapterDetector` in `BookSmith.Services/Cleaning` with regex pattern recognition for Turkish, English, Roman numerals, and ordinals.
+- Integrated chapter detection as Step 4 in `BookPipeline.Process()`.
+- Updated `EpubExporter` to generate multi-chapter EPUB files (`chapter1.xhtml`, `chapter2.xhtml`, etc.) and a full `toc.ncx` Table of Contents map.
+- Added collapsible chapter navigator sidebar to `EditorView.xaml` with instant click-to-scroll navigation.
+- Created `ChapterDetectorTests` unit test suite (78 total passing tests).
 
 ---
 
 ## Phase 3: Export Customization & User Presets
 
-### Sprint 23 - Advanced EPUB Styling & Cover Image Support
+### Sprint 23 - Advanced EPUB Styling & Cover Image Support 👈 **NEXT STEP**
 **Goal:** Allow users to upload custom book cover images and customize EPUB font sizes/margins.
 - **Tasks:**
   - Add cover image selection in UI.

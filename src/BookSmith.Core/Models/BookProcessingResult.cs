@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace BookSmith.Core.Models;
 
@@ -8,6 +9,7 @@ public class BookProcessingResult
     public int TotalPages { get; set; }
     public string OriginalText { get; set; } = string.Empty;
     public string CleanedText { get; set; } = string.Empty;
+    public IReadOnlyList<ChapterInfo> Chapters { get; set; } = Array.Empty<ChapterInfo>();
 
     public int OriginalCharCount => OriginalText.Length;
     public int CleanedCharCount => CleanedText.Length;

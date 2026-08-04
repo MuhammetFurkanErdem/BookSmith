@@ -62,7 +62,8 @@ public class MainViewModel : ViewModelBase
             EditorViewModel.CleanedCharCount = result.CleanedCharCount;
             EditorViewModel.RemovedCharCount = result.RemovedCharCount;
             EditorViewModel.ReductionPercentage = result.ReductionPercentage;
-            EditorViewModel.StatusText = $"Completed! Cleaned {result.CleanedCharCount:N0} chars ({result.ReductionPercentage:F1}% reduction).";
+            EditorViewModel.Chapters = result.Chapters;
+            EditorViewModel.StatusText = $"Completed! Cleaned {result.CleanedCharCount:N0} chars ({result.ReductionPercentage:F1}% reduction). {result.Chapters.Count} chapter(s) detected.";
 
             _navigationService.NavigateTo(EditorViewModel, 3);
         }

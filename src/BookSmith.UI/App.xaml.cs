@@ -29,6 +29,7 @@ public partial class App : Application
                 services.AddSingleton<IPdfReader, PdfPigReader>();
                 services.AddSingleton<ITextCleaner, TextCleaner>();
                 services.AddSingleton<IFrontMatterFilter, FrontMatterFilter>();
+                services.AddSingleton<IChapterDetector, ChapterDetector>();
                 services.AddSingleton<IBookPipeline, BookPipeline>();
                 services.AddSingleton<IEpubExporter, EpubExporter>();
                 services.AddSingleton<ISettingsService, JsonSettingsService>();

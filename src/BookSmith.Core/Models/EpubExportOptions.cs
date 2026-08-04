@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace BookSmith.Core.Models;
 
 public class EpubExportOptions
@@ -7,4 +10,5 @@ public class EpubExportOptions
     public string Language { get; set; } = "tr";
     public string OutputPath { get; set; } = string.Empty;
     public string ContentText { get; set; } = string.Empty;
+    public IReadOnlyList<ChapterInfo> Chapters { get; set; } = Array.Empty<ChapterInfo>();
 }

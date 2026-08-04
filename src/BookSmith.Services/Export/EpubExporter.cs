@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Web;
 using BookSmith.Core.Interfaces;
@@ -20,47 +22,123 @@ public class EpubExporter : IEpubExporter
 
         string directory = Path.GetDirectoryName(options.OutputPath) ?? string.Empty;
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-        {
             Directory.CreateDirectory(directory);
-        }
 
         if (File.Exists(options.OutputPath))
-        {
             File.Delete(options.OutputPath);
-        }
 
-        using (var fileStream = new FileStream(options.OutputPath, FileMode.Create, FileAccess.Write))
-        using (var archive = new ZipArchive(fileStream, ZipArchiveMode.Create))
-        {
-            // 1. mimetype (Must be uncompressed first entry)
-            var mimeEntry = archive.CreateEntry("mimetype", CompressionLevel.NoCompression);
-            using (var writer = new StreamWriter(mimeEntry.Open(), Encoding.ASCII))
-            {
-                writer.Write("application/epub+zip");
-            }
+        // Split content into chapters if chapter info is available
+        var chapters = BuildChapters(options);
 
-            // 2. META-INF/container.xml
-            var containerEntry = archive.CreateEntry("META-INF/container.xml", CompressionLevel.Optimal);
-            using (var writer = new StreamWriter(containerEntry.Open(), Encoding.UTF8))
-            {
-                writer.Write(@"<?xml me=""1.0"" encoding=""UTF-8""?>
+        using var fileStream = new FileStream(options.OutputPath, FileMode.Create, FileAccess.Write);
+        using var archive = new ZipArchive(fileStream, ZipArchiveMode.Create);
+
+        // 1. mimetype (Must be uncompressed first entry)
+        WriteEntry(archive, "mimetype", "application/epub+zip", CompressionLevel.NoCompression);
+
+        // 2. META-INF/container.xml
+        WriteEntry(archive, "META-INF/container.xml", @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <container version=""1.0"" xmlns=""urn:oasis:names:tc:opendocument:xmlns:container"">
   <rootfiles>
     <rootfile full-path=""OEBPS/content.opf"" media-type=""application/oebps-package+xml""/>
   </rootfiles>
 </container>");
-            }
 
-            string bookId = "urn:uuid:" + Guid.NewGuid().ToString();
-            string title = HttpUtility.HtmlEncode(options.Title ?? "Untitled Book");
-            string author = HttpUtility.HtmlEncode(options.Author ?? "Unknown Author");
-            string language = HttpUtility.HtmlEncode(options.Language ?? "tr");
+        string bookId = "urn:uuid:" + Guid.NewGuid().ToString();
+        string title = HttpUtility.HtmlEncode(options.Title ?? "Untitled Book");
+        string author = HttpUtility.HtmlEncode(options.Author ?? "Unknown Author");
+        string language = HttpUtility.HtmlEncode(options.Language ?? "tr");
 
-            // 3. OEBPS/content.opf
-            var opfEntry = archive.CreateEntry("OEBPS/content.opf", CompressionLevel.Optimal);
-            using (var writer = new StreamWriter(opfEntry.Open(), Encoding.UTF8))
+        // 3. OEBPS/content.opf (dynamic manifest/spine per chapter)
+        WriteEntry(archive, "OEBPS/content.opf", BuildOpf(bookId, title, author, language, chapters));
+
+        // 4. OEBPS/toc.ncx (real chapter nav points)
+        WriteEntry(archive, "OEBPS/toc.ncx", BuildNcx(bookId, title, chapters));
+
+        // 5. OEBPS/style.css
+        WriteEntry(archive, "OEBPS/style.css", @"body {
+    font-family: Georgia, 'Times New Roman', serif;
+    margin: 5%;
+    line-height: 1.6;
+}
+h1 {
+    font-size: 1.4em;
+    font-weight: bold;
+    text-align: center;
+    margin: 2em 0 1em 0;
+    page-break-before: always;
+}
+p {
+    text-indent: 1.5em;
+    margin-top: 0;
+    margin-bottom: 0.5em;
+}");
+
+        // 6. Chapter XHTML files
+        for (int i = 0; i < chapters.Count; i++)
+        {
+            string fileName = $"OEBPS/chapter{i + 1}.xhtml";
+            WriteEntry(archive, fileName, BuildChapterXhtml(chapters[i].Title, chapters[i].Content, title));
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Chapter splitting
+
+    private record ChapterContent(string Title, string Content);
+
+    private List<ChapterContent> BuildChapters(EpubExportOptions options)
+    {
+        string fullText = options.ContentText ?? string.Empty;
+        var chapterInfos = options.Chapters;
+
+        // No chapter info: single chapter
+        if (chapterInfos == null || chapterInfos.Count == 0)
+        {
+            return new List<ChapterContent>
             {
-                writer.Write($@"<?xml version=""1.0"" encoding=""UTF-8""?>
+                new ChapterContent(options.Title ?? "Book", fullText)
+            };
+        }
+
+        // Split text at chapter offsets
+        var result = new List<ChapterContent>();
+        for (int i = 0; i < chapterInfos.Count; i++)
+        {
+            int start = chapterInfos[i].CharOffset;
+            int end = (i + 1 < chapterInfos.Count) ? chapterInfos[i + 1].CharOffset : fullText.Length;
+            string content = start < fullText.Length
+                ? fullText.Substring(start, Math.Max(0, end - start))
+                : string.Empty;
+            result.Add(new ChapterContent(chapterInfos[i].Title, content));
+        }
+
+        // If there's content before the first chapter, prepend as a preface
+        if (chapterInfos.Count > 0 && chapterInfos[0].CharOffset > 0)
+        {
+            string preface = fullText.Substring(0, chapterInfos[0].CharOffset).Trim();
+            if (!string.IsNullOrWhiteSpace(preface))
+                result.Insert(0, new ChapterContent("Preface", preface));
+        }
+
+        return result;
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Content builders
+
+    private static string BuildOpf(string bookId, string title, string author, string language, List<ChapterContent> chapters)
+    {
+        var manifest = new StringBuilder();
+        var spine = new StringBuilder();
+        for (int i = 0; i < chapters.Count; i++)
+        {
+            string id = $"chapter{i + 1}";
+            manifest.AppendLine($"    <item id=\"{id}\" href=\"{id}.xhtml\" media-type=\"application/xhtml+xml\"/>");
+            spine.AppendLine($"    <itemref idref=\"{id}\"/>");
+        }
+
+        return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <package xmlns=""http://www.idpf.org/2007/opf"" unique-identifier=""BookId"" version=""2.0"">
   <metadata xmlns:dc=""http://purl.org/dc/elements/1.1/"" xmlns:opf=""http://www.idpf.org/2007/opf"">
     <dc:title>{title}</dc:title>
@@ -71,19 +149,25 @@ public class EpubExporter : IEpubExporter
   <manifest>
     <item id=""ncx"" href=""toc.ncx"" media-type=""application/x-dtbncx+xml""/>
     <item id=""style"" href=""style.css"" media-type=""text/css""/>
-    <item id=""chapter1"" href=""chapter1.xhtml"" media-type=""application/xhtml+xml""/>
-  </manifest>
+{manifest}  </manifest>
   <spine toc=""ncx"">
-    <itemref idref=""chapter1""/>
-  </spine>
-</package>");
-            }
+{spine}  </spine>
+</package>";
+    }
 
-            // 4. OEBPS/toc.ncx
-            var ncxEntry = archive.CreateEntry("OEBPS/toc.ncx", CompressionLevel.Optimal);
-            using (var writer = new StreamWriter(ncxEntry.Open(), Encoding.UTF8))
-            {
-                writer.Write($@"<?xml version=""1.0"" encoding=""UTF-8""?>
+    private static string BuildNcx(string bookId, string title, List<ChapterContent> chapters)
+    {
+        var navPoints = new StringBuilder();
+        for (int i = 0; i < chapters.Count; i++)
+        {
+            string chapterTitle = HttpUtility.HtmlEncode(chapters[i].Title);
+            navPoints.AppendLine($@"    <navPoint id=""navPoint-{i + 1}"" playOrder=""{i + 1}"">
+      <navLabel><text>{chapterTitle}</text></navLabel>
+      <content src=""chapter{i + 1}.xhtml""/>
+    </navPoint>");
+        }
+
+        return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <ncx xmlns=""http://www.daisy.org/z3986/2005/ncx/"" version=""2005-1"">
   <head>
     <meta name=""dtb:uid"" content=""{bookId}""/>
@@ -91,68 +175,51 @@ public class EpubExporter : IEpubExporter
     <meta name=""dtb:totalPageCount"" content=""0""/>
     <meta name=""dtb:maxPageNumber"" content=""0""/>
   </head>
-  <docTitle>
-    <text>{title}</text>
-  </docTitle>
+  <docTitle><text>{title}</text></docTitle>
   <navMap>
-    <navPoint id=""navPoint-1"" playOrder=""1"">
-      <navLabel>
-        <text>Start Reading</text>
-      </navLabel>
-      <content src=""chapter1.xhtml""/>
-    </navPoint>
-  </navMap>
-</ncx>");
-            }
+{navPoints}  </navMap>
+</ncx>";
+    }
 
-            // 5. OEBPS/style.css
-            var cssEntry = archive.CreateEntry("OEBPS/style.css", CompressionLevel.Optimal);
-            using (var writer = new StreamWriter(cssEntry.Open(), Encoding.UTF8))
+    private static string BuildChapterXhtml(string chapterTitle, string content, string bookTitle)
+    {
+        var body = new StringBuilder();
+        body.AppendLine($"  <h1>{HttpUtility.HtmlEncode(chapterTitle)}</h1>");
+
+        string[] paragraphs = content.Split(new[] { "\n\n", "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string p in paragraphs)
+        {
+            string trimmed = p.Trim();
+            if (!string.IsNullOrEmpty(trimmed))
             {
-                writer.Write(@"body {
-    font-family: Georgia, 'Times New Roman', serif;
-    margin: 5%;
-    line-height: 1.6;
-}
-p {
-    text-indent: 1.5em;
-    margin-top: 0;
-    margin-bottom: 0.5em;
-}");
-            }
-
-            // 6. OEBPS/chapter1.xhtml
-            var chapterEntry = archive.CreateEntry("OEBPS/chapter1.xhtml", CompressionLevel.Optimal);
-            using (var writer = new StreamWriter(chapterEntry.Open(), Encoding.UTF8))
-            {
-                var htmlBuilder = new StringBuilder();
-                htmlBuilder.AppendLine(@"<?xml version=""1.0"" encoding=""UTF-8""?>");
-                htmlBuilder.AppendLine(@"<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.1//EN"" ""http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"">");
-                htmlBuilder.AppendLine(@"<html xmlns=""http://www.w3.org/1999/xhtml"">");
-                htmlBuilder.AppendLine(@"<head>");
-                htmlBuilder.AppendLine($@"  <title>{title}</title>");
-                htmlBuilder.AppendLine(@"  <link rel=""stylesheet"" type=""text/css"" href=""style.css""/>");
-                htmlBuilder.AppendLine(@"</head>");
-                htmlBuilder.AppendLine(@"<body>");
-
-                string rawText = options.ContentText ?? string.Empty;
-                string[] paragraphs = rawText.Split(new[] { "\n\n", "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-
-                foreach (string p in paragraphs)
-                {
-                    string trimmed = p.Trim();
-                    if (!string.IsNullOrEmpty(trimmed))
-                    {
-                        string encoded = HttpUtility.HtmlEncode(trimmed).Replace("\n", "<br/>");
-                        htmlBuilder.AppendLine($"  <p>{encoded}</p>");
-                    }
-                }
-
-                htmlBuilder.AppendLine(@"</body>");
-                htmlBuilder.AppendLine(@"</html>");
-
-                writer.Write(htmlBuilder.ToString());
+                // Skip the chapter heading line itself if it matches
+                if (trimmed.Equals(chapterTitle, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                string encoded = HttpUtility.HtmlEncode(trimmed).Replace("\n", "<br/>");
+                body.AppendLine($"  <p>{encoded}</p>");
             }
         }
+
+        return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.1//EN"" ""http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"">
+<html xmlns=""http://www.w3.org/1999/xhtml"">
+<head>
+  <title>{HttpUtility.HtmlEncode(bookTitle)}</title>
+  <link rel=""stylesheet"" type=""text/css"" href=""style.css""/>
+</head>
+<body>
+{body}</body>
+</html>";
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Helpers
+
+    private static void WriteEntry(ZipArchive archive, string entryName, string content,
+        CompressionLevel level = CompressionLevel.Optimal)
+    {
+        var entry = archive.CreateEntry(entryName, level);
+        using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
+        writer.Write(content);
     }
 }

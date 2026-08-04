@@ -10,12 +10,18 @@ public class BookPipeline : IBookPipeline
     private readonly IPdfReader _pdfReader;
     private readonly ITextCleaner _textCleaner;
     private readonly IFrontMatterFilter? _frontMatterFilter;
+    private readonly IChapterDetector? _chapterDetector;
 
-    public BookPipeline(IPdfReader pdfReader, ITextCleaner textCleaner, IFrontMatterFilter? frontMatterFilter = null)
+    public BookPipeline(
+        IPdfReader pdfReader,
+        ITextCleaner textCleaner,
+        IFrontMatterFilter? frontMatterFilter = null,
+        IChapterDetector? chapterDetector = null)
     {
         _pdfReader = pdfReader ?? throw new ArgumentNullException(nameof(pdfReader));
         _textCleaner = textCleaner ?? throw new ArgumentNullException(nameof(textCleaner));
         _frontMatterFilter = frontMatterFilter;
+        _chapterDetector = chapterDetector;
     }
 
     public BookProcessingResult Process(string filePath, bool removeFrontMatter = true)
@@ -41,19 +47,24 @@ public class BookPipeline : IBookPipeline
         }
 
         // Step 2: Remove running headers & footers
-        // Re-split into page list for the header/footer remover
         var filteredPages = textAfterFrontMatter.Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
         string textWithoutHeadersFooters = _textCleaner.RemoveHeadersAndFooters(filteredPages);
 
         // Step 3: Full text cleaning (normalize, merge lines, TTS format, etc.)
         var cleaningResult = _textCleaner.Clean(textWithoutHeadersFooters);
+        string cleanedText = cleaningResult.CleanedText;
+
+        // Step 4 (optional): Detect chapter headings
+        var chapters = _chapterDetector?.DetectChapters(cleanedText)
+                       ?? System.Array.Empty<ChapterInfo>();
 
         return new BookProcessingResult
         {
             FilePath = filePath,
             TotalPages = pages.Count,
             OriginalText = originalText,
-            CleanedText = cleaningResult.CleanedText
+            CleanedText = cleanedText,
+            Chapters = chapters
         };
     }
 }

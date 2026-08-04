@@ -22,6 +22,7 @@ public partial class EditorView : UserControl
         if (_currentVm != null)
         {
             _currentVm.FindNextRequested -= OnFindNextRequested;
+            _currentVm.ScrollToChapterRequested -= OnScrollToChapterRequested;
         }
 
         // Subscribe to new VM
@@ -29,6 +30,21 @@ public partial class EditorView : UserControl
         if (_currentVm != null)
         {
             _currentVm.FindNextRequested += OnFindNextRequested;
+            _currentVm.ScrollToChapterRequested += OnScrollToChapterRequested;
+        }
+    }
+
+    private void OnScrollToChapterRequested(int charOffset)
+    {
+        if (EditorTextBox == null || charOffset < 0 || charOffset >= EditorTextBox.Text.Length) return;
+
+        EditorTextBox.Focus();
+        EditorTextBox.Select(charOffset, 0);
+
+        int lineIndex = EditorTextBox.GetLineIndexFromCharacterIndex(charOffset);
+        if (lineIndex >= 0)
+        {
+            EditorTextBox.ScrollToLine(lineIndex);
         }
     }
 

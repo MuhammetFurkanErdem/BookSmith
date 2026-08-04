@@ -48,6 +48,12 @@ public class EditorViewModel : ViewModelBase
     private int _wordCount = 0;
     private int _lineCount = 0;
 
+    // Chapter navigation
+    private IReadOnlyList<ChapterInfo> _chapters = Array.Empty<ChapterInfo>();
+
+    /// <summary>Event fired when a chapter is selected. Args: charOffset to scroll to.</summary>
+    public event Action<int>? ScrollToChapterRequested;
+
     public Action? OnBackRequested { get; set; }
 
     #region Core Properties
@@ -204,6 +210,18 @@ public class EditorViewModel : ViewModelBase
         set => SetProperty(ref _lineCount, value);
     }
 
+    public IReadOnlyList<ChapterInfo> Chapters
+    {
+        get => _chapters;
+        set
+        {
+            if (SetProperty(ref _chapters, value))
+                OnPropertyChanged(nameof(HasChapters));
+        }
+    }
+
+    public bool HasChapters => _chapters.Count > 0;
+
     #endregion
 
     #region Commands
@@ -211,6 +229,7 @@ public class EditorViewModel : ViewModelBase
     public ICommand ExportEpubCommand { get; }
     public ICommand ExportTxtCommand { get; }
     public ICommand BackCommand { get; }
+    public ICommand JumpToChapterCommand { get; }
 
     // Search & Replace commands
     public ICommand ToggleSearchCommand { get; }
@@ -244,6 +263,9 @@ public class EditorViewModel : ViewModelBase
         RemoveSelectedLinesCommand = new RelayCommand(OnRemoveSelectedLines, () => !string.IsNullOrWhiteSpace(SelectedText));
         UndoCommand = new RelayCommand(OnUndo, () => _undoStack.Count > 0);
         RedoCommand = new RelayCommand(OnRedo, () => _redoStack.Count > 0);
+
+        // Chapter navigation command
+        JumpToChapterCommand = new RelayCommand<ChapterInfo>(OnJumpToChapter);
     }
 
     #region Search & Replace Logic
@@ -476,6 +498,16 @@ public class EditorViewModel : ViewModelBase
                 StatusText = $"Error exporting TXT: {ex.Message}";
             }
         }
+    }
+
+    #endregion
+
+    #region Chapter Navigation
+
+    private void OnJumpToChapter(ChapterInfo? chapter)
+    {
+        if (chapter == null) return;
+        ScrollToChapterRequested?.Invoke(chapter.CharOffset);
     }
 
     #endregion
