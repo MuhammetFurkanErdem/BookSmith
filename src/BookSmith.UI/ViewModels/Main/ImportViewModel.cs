@@ -1,4 +1,7 @@
-using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using BookSmith.Core.Interfaces;
 using BookSmith.Core.Models;
@@ -11,6 +14,7 @@ public class ImportViewModel : ViewModelBase
 {
     private readonly IPdfReader _pdfReader;
     private readonly ISettingsService? _settingsService;
+    private readonly IPresetManager? _presetManager;
 
     private string _filePath = string.Empty;
     private string _fileName = string.Empty;
@@ -27,6 +31,11 @@ public class ImportViewModel : ViewModelBase
     private bool _elevenReaderMode = false;
     private bool _exportEpub = false;
     private bool _removeFrontMatter = true;
+
+    // Presets & Batch Queue State
+    private ObservableCollection<CleaningPreset> _presets = new();
+    private CleaningPreset? _selectedPreset;
+    private ObservableCollection<string> _selectedFiles = new();
 
     public Action? OnStartCleaningRequested { get; set; }
 
@@ -123,13 +132,52 @@ public class ImportViewModel : ViewModelBase
         set { if (SetProperty(ref _removeFrontMatter, value)) SaveSettings(); }
     }
 
+    public ObservableCollection<CleaningPreset> Presets
+    {
+        get => _presets;
+        set => SetProperty(ref _presets, value);
+    }
+
+    public CleaningPreset? SelectedPreset
+    {
+        get => _selectedPreset;
+        set
+        {
+            if (SetProperty(ref _selectedPreset, value) && value != null)
+            {
+                ApplyPreset(value);
+            }
+        }
+    }
+
+    public ObservableCollection<string> SelectedFiles
+    {
+        get => _selectedFiles;
+        set
+        {
+            if (SetProperty(ref _selectedFiles, value))
+            {
+                OnPropertyChanged(nameof(IsBatchMode));
+                OnPropertyChanged(nameof(FileCountText));
+            }
+        }
+    }
+
+    public bool IsBatchMode => SelectedFiles.Count > 1;
+
+    public string FileCountText => SelectedFiles.Count > 1
+        ? $"{SelectedFiles.Count} files selected (Batch Mode)"
+        : IsFileSelected ? "1 file selected" : "No file selected";
+
     public ICommand BrowseCommand { get; }
     public ICommand StartCleaningCommand { get; }
+    public ICommand SavePresetCommand { get; }
 
-    public ImportViewModel(IPdfReader pdfReader, ISettingsService? settingsService = null)
+    public ImportViewModel(IPdfReader pdfReader, ISettingsService? settingsService = null, IPresetManager? presetManager = null)
     {
         _pdfReader = pdfReader ?? throw new ArgumentNullException(nameof(pdfReader));
         _settingsService = settingsService;
+        _presetManager = presetManager;
 
         if (_settingsService != null)
         {
@@ -145,8 +193,11 @@ public class ImportViewModel : ViewModelBase
             _removeFrontMatter = saved.RemoveFrontMatter;
         }
 
+        LoadPresets();
+
         BrowseCommand = new RelayCommand(OnBrowse);
-        StartCleaningCommand = new RelayCommand(OnStartCleaning, () => IsFileSelected);
+        StartCleaningCommand = new RelayCommand(OnStartCleaning, () => IsFileSelected || SelectedFiles.Count > 0);
+        SavePresetCommand = new RelayCommand(OnSavePreset);
     }
 
     private void SaveSettings()
@@ -167,32 +218,96 @@ public class ImportViewModel : ViewModelBase
         _settingsService.SaveSettings(settings);
     }
 
+    private void LoadPresets()
+    {
+        if (_presetManager == null) return;
+        var list = _presetManager.GetAllPresets();
+        Presets = new ObservableCollection<CleaningPreset>(list);
+        _selectedPreset = Presets.FirstOrDefault();
+        OnPropertyChanged(nameof(SelectedPreset));
+    }
+
+    private void ApplyPreset(CleaningPreset preset)
+    {
+        _removeHeaders = preset.RemoveHeaders;
+        _removeFooters = preset.RemoveFooters;
+        _removePageNumbers = preset.RemovePageNumbers;
+        _fixBrokenWords = preset.FixBrokenWords;
+        _mergeWrappedLines = preset.MergeWrappedLines;
+        _smartDialogueFormatting = preset.SmartDialogueFormatting;
+        _elevenReaderMode = preset.ElevenReaderMode;
+        _exportEpub = preset.ExportEpub;
+        _removeFrontMatter = preset.RemoveFrontMatter;
+
+        OnPropertyChanged(nameof(RemoveHeaders));
+        OnPropertyChanged(nameof(RemoveFooters));
+        OnPropertyChanged(nameof(RemovePageNumbers));
+        OnPropertyChanged(nameof(FixBrokenWords));
+        OnPropertyChanged(nameof(MergeWrappedLines));
+        OnPropertyChanged(nameof(SmartDialogueFormatting));
+        OnPropertyChanged(nameof(ElevenReaderMode));
+        OnPropertyChanged(nameof(ExportEpub));
+        OnPropertyChanged(nameof(RemoveFrontMatter));
+    }
+
+    private void OnSavePreset()
+    {
+        if (_presetManager == null) return;
+
+        string name = $"Custom Preset {Presets.Count(p => !p.IsBuiltIn) + 1}";
+        var newPreset = new CleaningPreset
+        {
+            Name = name,
+            Description = "User-created custom cleaning rules preset.",
+            IsBuiltIn = false,
+            RemoveHeaders = RemoveHeaders,
+            RemoveFooters = RemoveFooters,
+            RemovePageNumbers = RemovePageNumbers,
+            FixBrokenWords = FixBrokenWords,
+            MergeWrappedLines = MergeWrappedLines,
+            SmartDialogueFormatting = SmartDialogueFormatting,
+            ElevenReaderMode = ElevenReaderMode,
+            ExportEpub = ExportEpub,
+            RemoveFrontMatter = RemoveFrontMatter
+        };
+
+        _presetManager.SavePreset(newPreset);
+        LoadPresets();
+        SelectedPreset = Presets.FirstOrDefault(p => p.Id == newPreset.Id);
+    }
+
     private void OnBrowse()
     {
         var openFileDialog = new OpenFileDialog
         {
             Filter = "PDF Files (*.pdf)|*.pdf",
-            Title = "Select Audiobook PDF File"
+            Title = "Select Audiobook PDF File(s)",
+            Multiselect = true
         };
 
         if (openFileDialog.ShowDialog() == true)
         {
-            FilePath = openFileDialog.FileName;
+            SelectedFiles = new ObservableCollection<string>(openFileDialog.FileNames);
 
-            try
+            if (openFileDialog.FileNames.Length > 0)
             {
-                var metadata = _pdfReader.ReadMetadata(FilePath);
-                FileName = metadata.FileName;
-                FileSize = metadata.FileSize;
-                PageCount = metadata.PageCount;
-                PreviewText = _pdfReader.ReadFirstPageText(FilePath);
-            }
-            catch
-            {
-                FileName = "Error loading metadata";
-                FileSize = 0;
-                PageCount = 0;
-                PreviewText = "Error reading page content.";
+                FilePath = openFileDialog.FileNames[0];
+
+                try
+                {
+                    var metadata = _pdfReader.ReadMetadata(FilePath);
+                    FileName = metadata.FileName;
+                    FileSize = metadata.FileSize;
+                    PageCount = metadata.PageCount;
+                    PreviewText = _pdfReader.ReadFirstPageText(FilePath);
+                }
+                catch
+                {
+                    FileName = "Error loading metadata";
+                    FileSize = 0;
+                    PageCount = 0;
+                    PreviewText = "Error reading page content.";
+                }
             }
         }
     }

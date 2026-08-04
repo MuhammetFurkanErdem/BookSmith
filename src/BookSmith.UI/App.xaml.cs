@@ -31,8 +31,10 @@ public partial class App : Application
                 services.AddSingleton<IFrontMatterFilter, FrontMatterFilter>();
                 services.AddSingleton<IChapterDetector, ChapterDetector>();
                 services.AddSingleton<IBookPipeline, BookPipeline>();
+                services.AddSingleton<IBatchProcessor, BatchProcessor>();
                 services.AddSingleton<IEpubExporter, EpubExporter>();
                 services.AddSingleton<ISettingsService, JsonSettingsService>();
+                services.AddSingleton<IPresetManager, JsonPresetManager>();
                 services.AddSingleton<INavigationService, NavigationService>();
 
                 // Register UI layers (ViewModels and Views)

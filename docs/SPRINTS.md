@@ -254,13 +254,17 @@ All v1.0 core sprints are fully implemented, tested, and verified.
 - Added EPUB customization panel to `EditorView.xaml` with Cover Image file picker, Author metadata input, Font Size selector, and "⚙ EPUB Settings" toggle button.
 - Created `EpubExporterTests` unit test suite (81 total passing tests).
 
-### Sprint 24 - Cleaning Presets & Batch Processing Engine (`IBatchProcessor`) 👈 **NEXT STEP**
+### Sprint 24 - Cleaning Presets & Batch Processing Engine (`IBatchProcessor`)
+**Status:** ✅ Completed  
 **Goal:** Save custom cleaning rule presets and batch-process multiple PDF books in sequence.
-- **Tasks:**
-  - Build preset manager (e.g., "ElevenReader Fiction", "Academic Papers").
-  - Support multi-file queue processing.
+- Created `CleaningPreset` domain model, `IPresetManager` interface, and `JsonPresetManager` implementation.
+- Included 3 built-in presets ("Default Rules", "ElevenReader Fiction", "Academic Clean") and persistence for user-created custom presets in `%AppData%/BookSmith/presets.json`.
+- Created `BatchItem` model, `IBatchProcessor` interface, and `BatchProcessor` implementation for sequential multi-file execution with progress reporting.
+- Updated `ImportView.xaml` with Preset selection dropdown ("Default", "ElevenReader Fiction", "Academic Clean"), "+ Save Preset" button, and multi-file selection support.
+- Updated `MainViewModel` to execute `IBatchProcessor` when multiple files are queued.
+- Created `PresetManagerTests` and `BatchProcessorTests` unit test suites (87 total passing tests).
 
-### Sprint 25 - Performance Virtualization & v2.0 Final Polish
+### Sprint 25 - Performance Virtualization & v2.0 Final Polish 👈 **NEXT STEP**
 **Goal:** Optimize text rendering for 1000+ page books and deliver final UI polish.
 - **Tasks:**
   - Implement UI text virtualization for instant rendering of massive books.

@@ -75,7 +75,21 @@
             <!-- Card 2: Cleaning Options -->
             <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="Cleaning Options" Style="{StaticResource SectionHeaderStyle}" />
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Cleaning Options" Style="{StaticResource SectionHeaderStyle}" Margin="0"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <TextBlock Text="Preset:" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name" Width="170" Height="26" VerticalContentAlignment="Center" Margin="0,0,8,0"/>
+                            <Button Content="+ Save Preset" Command="{Binding SavePresetCommand}" Padding="8,2" FontSize="11" Height="26"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="{Binding SelectedPreset.Description}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap"/>
 
                     <UniformGrid Columns="2">
                         <CheckBox Content="Remove Headers" IsChecked="{Binding RemoveHeaders}" Margin="0,4,8,4" Foreground="{StaticResource TextPrimaryBrush}" />
