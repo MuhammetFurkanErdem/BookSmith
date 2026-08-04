@@ -34,7 +34,7 @@ public class TurkishSpellChecker : ISpellChecker
         "Geralt", "Yennefer", "Witcher", "Neville", "Krepp", "Ciri", "Dandelion", "Vengerberg"
     };
 
-    private static readonly Regex WordSplitRegex = new(@"\b[a-zA-ZçşğüöıÇŞĞÜÖİ]+\b", RegexOptions.Compiled);
+    private static readonly Regex WordSplitRegex = new(@"\b[\w\uFFFD\?]+\b", RegexOptions.Compiled);
 
     public bool IsWordValid(string word)
     {
@@ -42,11 +42,19 @@ public class TurkishSpellChecker : ISpellChecker
 
         string cleanWord = word.Trim();
 
+        // 1. High Priority Anomaly: Contains Unicode replacement character '\uFFFD' or '?' inside letters
+        if (cleanWord.Contains('\uFFFD') || (cleanWord.Contains('?') && cleanWord.Length > 1))
+            return false;
+
         // Single character words (except a, e, o, vb) or numbers are valid
         if (cleanWord.Length <= 1 || cleanWord.All(char.IsDigit)) return true;
 
         // Standard dictionary lookup
         if (TurkishDictionary.Contains(cleanWord)) return true;
+
+        // Capitalized proper nouns / foreign names (e.g. vypper, aeschna) in story context are accepted unless contains invalid symbols
+        if (char.IsUpper(cleanWord[0]) && !cleanWord.Contains('\uFFFD'))
+            return true;
 
         // Heuristic: check if word has valid Turkish vowel structure
         if (IsTurkishStructureValid(cleanWord)) return true;

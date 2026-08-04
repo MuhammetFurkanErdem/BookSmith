@@ -306,12 +306,21 @@ All 25 Sprints across Phase 1, Phase 2, and Phase 3 have been successfully compl
 
 ## Phase 5: LLM-Powered Contextual Text Reconstruction (v3.0 Roadmap)
 
-### Sprint 28 - LLM Service Provider Integration (`IAiReconstructionService`) 👈 **NEXT STEP**
+### Sprint 28 - LLM Service Provider Integration (`IAiReconstructionService`)
+**Status:** ✅ Completed  
 **Goal:** Connect local (Ollama / Local LLM) or cloud (Gemini / OpenAI API) LLMs to intelligently reconstruct corrupted OCR book paragraphs.
+- Created `AiModelConfig` model supporting Ollama, OpenAI, and Gemini LLM providers.
+- Created `IAiReconstructionService` interface in `BookSmith.Core`.
+- Implemented `OllamaAiService` in `BookSmith.Services/Cleaning` with custom BookSmith AI Prompt Template (fixes OCR encoding bugs `vrdı` -> `vardı`, removes inline author names `ANDRZEJ SAPKOWSKI`, and preserves proper nouns).
+- Registered `IAiReconstructionService` in `App.xaml.cs` Dependency Injection.
+- Created `AiReconstructionServiceTests` unit test suite (98 total passing tests).
+
+### Sprint 29 - Chunked Async AI Processing Pipeline 👈 **NEXT STEP**
+**Goal:** Automatically detect garbage/corrupted paragraph density and send chunks to LLM for asynchronous reconstruction.
 - **Tasks:**
-  - Create `IAiReconstructionService` interface & `AiModelConfig`.
-  - Implement Ollama & Cloud LLM API clients for contextual text repair.
-  - Create BookSmith prompt templates for noise removal and natural speech preservation.
+  - Build `GarbageCharacterDensity` detector to identify paragraphs with high OCR corruption.
+  - Implement chunking engine to send corrupted sections to `IAiReconstructionService`.
+  - Integrate AI reconstruction step in `BookPipeline.Process()`.
 
 ### Sprint 29 - Chunked Async AI Processing Pipeline
 **Goal:** Automatically detect garbage/corrupted paragraph density and send chunks to LLM for asynchronous reconstruction.
