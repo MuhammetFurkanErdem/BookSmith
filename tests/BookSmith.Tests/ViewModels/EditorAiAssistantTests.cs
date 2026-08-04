@@ -68,4 +68,16 @@ public class EditorAiAssistantTests
         Assert.Equal(original, vm.CleanedText);
         Assert.False(vm.IsDiffModalVisible);
     }
+
+    [Fact]
+    public void ExtractParagraphContext_ExpandsShortSingleWordSelectionToFullParagraph()
+    {
+        string fullText = "İlk paragraf.\n\nAndrzej Sapkowski ekonomist, edebiyat eleştirmeni yazardı. Witcher Geralt macerası başladı.\n\nSon paragraf.";
+        string singleWord = "ekonomist";
+
+        string extracted = EditorViewModel.ExtractParagraphContext(singleWord, fullText);
+
+        Assert.Contains("Andrzej Sapkowski ekonomist", extracted);
+        Assert.Contains("Witcher Geralt macerası başladı.", extracted);
+    }
 }

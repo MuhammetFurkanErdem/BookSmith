@@ -383,6 +383,7 @@ public class EditorViewModel : ViewModelBase
     // AI Assistant commands
     public ICommand ToggleAiPanelCommand { get; }
     public ICommand AiFixSelectionCommand { get; }
+    public ICommand RegenerateAiFixCommand { get; }
     public ICommand AcceptAiFixCommand { get; }
     public ICommand RejectAiFixCommand { get; }
     public ICommand TestAiConnectionCommand { get; }
@@ -446,6 +447,7 @@ public class EditorViewModel : ViewModelBase
         // AI Assistant commands
         ToggleAiPanelCommand = new RelayCommand(() => IsAiPanelVisible = !IsAiPanelVisible);
         AiFixSelectionCommand = new RelayCommand(OnAiFixSelection, () => !string.IsNullOrWhiteSpace(CleanedText));
+        RegenerateAiFixCommand = new RelayCommand(OnRegenerateAiFix, () => !string.IsNullOrWhiteSpace(OriginalDiffText));
         AcceptAiFixCommand = new RelayCommand(OnAcceptAiFix);
         RejectAiFixCommand = new RelayCommand(() => IsDiffModalVisible = false);
         TestAiConnectionCommand = new RelayCommand(OnTestAiConnection);
@@ -866,8 +868,11 @@ public class EditorViewModel : ViewModelBase
             return;
         }
 
-        string targetText = !string.IsNullOrWhiteSpace(SelectedText) ? SelectedText : CleanedText;
-        if (string.IsNullOrWhiteSpace(targetText)) return;
+        string rawTarget = !string.IsNullOrWhiteSpace(SelectedText) ? SelectedText : CleanedText;
+        if (string.IsNullOrWhiteSpace(rawTarget)) return;
+
+        // Smart Context Expansion: If user selected a single short word/phrase, expand to full paragraph context
+        string targetText = ExtractParagraphContext(rawTarget, CleanedText);
 
         // Take up to first 2,000 characters if full text selected
         if (targetText.Length > 2000)
@@ -881,12 +886,70 @@ public class EditorViewModel : ViewModelBase
             string restored = await _aiService.ReconstructParagraphAsync(targetText, AiConfig);
             AiRestoredDiffText = restored;
             IsDiffModalVisible = true;
-            StatusText = "🤖 AI Restoration complete. Review Diff modal to accept or reject.";
+            StatusText = "🤖 AI Restoration complete. Review Diff modal to accept, reject, or regenerate.";
         }
         catch (Exception ex)
         {
             StatusText = $"AI Service Error: {ex.Message}";
         }
+    }
+
+    private async void OnRegenerateAiFix()
+    {
+        if (_aiService == null || string.IsNullOrWhiteSpace(OriginalDiffText)) return;
+
+        StatusText = "🔄 Regenerating alternative AI restoration...";
+        try
+        {
+            // Slightly tweak temperature for alternative generation
+            var tweakConfig = new AiModelConfig
+            {
+                EndpointUrl = AiConfig.EndpointUrl,
+                ModelName = AiConfig.ModelName,
+                ApiKey = AiConfig.ApiKey,
+                Provider = AiConfig.Provider,
+                Temperature = Math.Min(0.7, AiConfig.Temperature + 0.2)
+            };
+
+            string restored = await _aiService.ReconstructParagraphAsync(OriginalDiffText, tweakConfig);
+            AiRestoredDiffText = restored;
+            StatusText = "🔄 Alternative AI restoration generated.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"AI Service Error: {ex.Message}";
+        }
+    }
+
+    public static string ExtractParagraphContext(string selectedText, string fullText)
+    {
+        if (string.IsNullOrWhiteSpace(selectedText) || string.IsNullOrWhiteSpace(fullText))
+            return selectedText ?? string.Empty;
+
+        // If selection is already long enough (>40 chars), use selection directly
+        if (selectedText.Trim().Length > 40)
+            return selectedText.Trim();
+
+        string word = selectedText.Trim();
+        int index = fullText.IndexOf(word, StringComparison.OrdinalIgnoreCase);
+        if (index < 0) return selectedText;
+
+        // Search backward for paragraph start
+        int pStart = fullText.LastIndexOf("\n\n", index, StringComparison.Ordinal);
+        pStart = pStart < 0 ? 0 : pStart + 2;
+
+        // Search forward for paragraph end
+        int pEnd = fullText.IndexOf("\n\n", index, StringComparison.Ordinal);
+        pEnd = pEnd < 0 ? fullText.Length : pEnd;
+
+        if (pEnd > pStart)
+        {
+            string paragraph = fullText.Substring(pStart, pEnd - pStart).Trim();
+            if (!string.IsNullOrWhiteSpace(paragraph))
+                return paragraph;
+        }
+
+        return selectedText;
     }
 
     private void OnAcceptAiFix()

@@ -15,11 +15,11 @@ public class OllamaAiService : IAiReconstructionService
 
     public const string SystemPromptTemplate =
         "You are BookSmith AI, a specialized book editor and text restoration engine for audiobooks.\n" +
-        "Your task is to repair corrupted PDF text while strictly preserving story meaning, author intent, and character names.\n\n" +
+        "Your task is to repair corrupted PDF text while strictly preserving story meaning, author intent, and original language flow.\n\n" +
         "Rules:\n" +
         "1. Fix OCR encoding bugs, typos, and broken words (e.g. 'vrdı' -> 'vardı').\n" +
         "2. Remove stray inline author names, book titles, or running header/footer artifacts that break sentence flow (e.g. 'ANDRZEJ SAPKOWSKI').\n" +
-        "3. DO NOT change story elements, character names, or proper nouns (e.g. Geralt, Yennefer, Witcher, vypper, aeschna).\n" +
+        "3. DO NOT change valid story elements, character names, or proper nouns.\n" +
         "4. Output ONLY the clean restored text without markdown wrappers, introduction, or commentary.\n\n" +
         "Text to restore:\n{0}";
 

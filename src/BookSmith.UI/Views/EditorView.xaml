@@ -498,6 +498,8 @@
 
                     <!-- Footer Actions -->
                     <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="🔄 Regenerate" Command="{Binding RegenerateAiFixCommand}"
+                                Padding="16,8" FontSize="13" Margin="0,0,12,0" ToolTip="Request an alternative restoration option from AI"/>
                         <Button Content="✕ Reject" Command="{Binding RejectAiFixCommand}"
                                 Padding="16,8" FontSize="13" Margin="0,0,12,0"/>
                         <Button Content="✔ Accept &amp; Replace" Command="{Binding AcceptAiFixCommand}"
