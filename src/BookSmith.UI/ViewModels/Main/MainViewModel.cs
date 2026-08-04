@@ -50,7 +50,8 @@ public class MainViewModel : ViewModelBase
         try
         {
             string path = ImportViewModel.FilePath;
-            var result = await Task.Run(() => _bookPipeline.Process(path));
+            bool removeFrontMatter = ImportViewModel.RemoveFrontMatter;
+            var result = await Task.Run(() => _bookPipeline.Process(path, removeFrontMatter));
 
             ProcessingViewModel.ProgressValue = 80;
             ProcessingViewModel.StatusText = "Finalizing text cleaning...";

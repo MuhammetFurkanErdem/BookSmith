@@ -86,6 +86,7 @@
                         <CheckBox Content="Smart Dialogue Formatting" IsChecked="{Binding SmartDialogueFormatting}" Margin="0,4,0,4" Foreground="{StaticResource TextPrimaryBrush}" />
                         <CheckBox Content="ElevenReader TTS Mode" IsChecked="{Binding ElevenReaderMode}" Margin="0,4,8,4" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" />
                         <CheckBox Content="Auto-Export EPUB" IsChecked="{Binding ExportEpub}" Margin="0,4,0,4" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <CheckBox Content="Remove Front Matter (Publisher credits, ISBN, copyright)" IsChecked="{Binding RemoveFrontMatter}" Margin="0,4,8,4" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" />
                     </UniformGrid>
                 </StackPanel>
             </Border>

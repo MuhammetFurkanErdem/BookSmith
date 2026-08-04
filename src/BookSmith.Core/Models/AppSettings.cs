@@ -10,5 +10,6 @@ public class AppSettings
     public bool SmartDialogueFormatting { get; set; } = true;
     public bool ElevenReaderMode { get; set; } = false;
     public bool ExportEpub { get; set; } = false;
+    public bool RemoveFrontMatter { get; set; } = true;
     public string DefaultLanguage { get; set; } = "tr";
 }

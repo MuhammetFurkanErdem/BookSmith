@@ -28,7 +28,7 @@ public class MainViewModelTests
 
     private class MockBookPipeline : IBookPipeline
     {
-        public BookProcessingResult Process(string filePath)
+        public BookProcessingResult Process(string filePath, bool removeFrontMatter = true)
         {
             return new BookProcessingResult
             {

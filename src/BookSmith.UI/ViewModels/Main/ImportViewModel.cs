@@ -26,6 +26,7 @@ public class ImportViewModel : ViewModelBase
     private bool _smartDialogueFormatting = true;
     private bool _elevenReaderMode = false;
     private bool _exportEpub = false;
+    private bool _removeFrontMatter = true;
 
     public Action? OnStartCleaningRequested { get; set; }
 
@@ -116,6 +117,12 @@ public class ImportViewModel : ViewModelBase
         set { if (SetProperty(ref _exportEpub, value)) SaveSettings(); }
     }
 
+    public bool RemoveFrontMatter
+    {
+        get => _removeFrontMatter;
+        set { if (SetProperty(ref _removeFrontMatter, value)) SaveSettings(); }
+    }
+
     public ICommand BrowseCommand { get; }
     public ICommand StartCleaningCommand { get; }
 
@@ -135,6 +142,7 @@ public class ImportViewModel : ViewModelBase
             _smartDialogueFormatting = saved.SmartDialogueFormatting;
             _elevenReaderMode = saved.ElevenReaderMode;
             _exportEpub = saved.ExportEpub;
+            _removeFrontMatter = saved.RemoveFrontMatter;
         }
 
         BrowseCommand = new RelayCommand(OnBrowse);
@@ -153,7 +161,8 @@ public class ImportViewModel : ViewModelBase
             MergeWrappedLines = MergeWrappedLines,
             SmartDialogueFormatting = SmartDialogueFormatting,
             ElevenReaderMode = ElevenReaderMode,
-            ExportEpub = ExportEpub
+            ExportEpub = ExportEpub,
+            RemoveFrontMatter = RemoveFrontMatter
         };
         _settingsService.SaveSettings(settings);
     }

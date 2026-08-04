@@ -220,14 +220,18 @@ All v1.0 core sprints are fully implemented, tested, and verified.
 
 ## Phase 2: Enhanced Intelligence & Publisher Filtering
 
-### Sprint 21 - Automatic Front-Matter & Publisher Credit Filter (`IFrontMatterFilter`) 👈 **NEXT STEP**
+### Sprint 21 - Automatic Front-Matter & Publisher Credit Filter (`IFrontMatterFilter`)
+**Status:** ✅ Completed  
 **Goal:** Automatically detect and strip publisher copyright details, ISBNs, translator notes, and printing credits from front matter pages.
-- **Tasks:**
-  - Create `IFrontMatterFilter` in `BookSmith.Services`.
-  - Add pattern recognition for keywords ("PEGASUS YAYINLARI", "Baskı-Cilt", "Sertifika No", "Bestseller Roman", "Yayın Koordinatörü").
-  - Integrate into `BookPipeline`.
+- Created `IFrontMatterFilter` interface in `BookSmith.Core/Interfaces`.
+- Implemented `FrontMatterFilter` in `BookSmith.Services/Cleaning` with Turkish + international keyword detection (3+ hits → front matter page).
+- Scans only first 8 pages; never touches main content.
+- Short pages (< 200 chars) at the start are also automatically removed.
+- Integrated as Step 1 in `BookPipeline.Process()` before header/footer removal.
+- Added `RemoveFrontMatter` toggle to `AppSettings`, `ImportViewModel`, and `ImportView.xaml` (green checkbox).
+- Created `FrontMatterFilterTests` unit test suite (71 total passing tests).
 
-### Sprint 22 - Chapter Structure & Table of Contents Detection (`IChapterDetector`)
+### Sprint 22 - Chapter Structure & Table of Contents Detection (`IChapterDetector`) 👈 **NEXT STEP**
 **Goal:** Detect chapter headings (`BÖLÜM 1`, `CHAPTER I`, Roman numerals `I`, `II`, `III`) and structure them in EPUB table of contents.
 - **Tasks:**
   - Create `IChapterDetector` service.

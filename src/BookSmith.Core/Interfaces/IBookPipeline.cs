@@ -4,5 +4,5 @@ namespace BookSmith.Core.Interfaces;
 
 public interface IBookPipeline
 {
-    BookProcessingResult Process(string filePath);
+    BookProcessingResult Process(string filePath, bool removeFrontMatter = true);
 }
