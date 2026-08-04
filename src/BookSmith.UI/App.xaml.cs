@@ -30,6 +30,7 @@ public partial class App : Application
                 services.AddSingleton<ITextCleaner, TextCleaner>();
                 services.AddSingleton<IFrontMatterFilter, FrontMatterFilter>();
                 services.AddSingleton<IChapterDetector, ChapterDetector>();
+                services.AddSingleton<ISpellChecker, TurkishSpellChecker>();
                 services.AddSingleton<IBookPipeline, BookPipeline>();
                 services.AddSingleton<IBatchProcessor, BatchProcessor>();
                 services.AddSingleton<IEpubExporter, EpubExporter>();

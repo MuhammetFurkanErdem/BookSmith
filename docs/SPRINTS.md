@@ -280,3 +280,36 @@ All 25 Sprints across Phase 1, Phase 2, and Phase 3 have been successfully compl
 - **Intelligence:** Front-matter & publisher credit filter (`IFrontMatterFilter`), Chapter structure & Table of Contents detector (`IChapterDetector`).
 - **Exporting:** EPUB 2.0/3.0 multi-chapter exporter with custom cover image packaging, dynamic typography CSS, and TXT exporter.
 - **Editor & UI:** 3-Step Navigation Flow (Import -> Processing -> Editor), Search & Replace, Undo/Redo, Live Counters, Chapter Navigator Sidebar, Preset Manager, Batch Queue Processor.
+
+---
+
+## Phase 4: Live Spell Checking & Visual Highlighting (v3.0 Roadmap)
+
+### Sprint 26 - Live Spell Checker & Dictionary Engine (`ISpellChecker`)
+**Status:** ✅ Completed  
+**Goal:** Build a high-performance Turkish spell checking and word anomaly detection engine.
+- Created `MisspelledWord` model and `ISpellChecker` interface in `BookSmith.Core`.
+- Implemented `TurkishSpellChecker` in `BookSmith.Services/Cleaning` with a rich Turkish vocabulary dictionary, OCR consonant noise detector, and diacritic-aware Levenshtein edit distance suggestions.
+- Registered `ISpellChecker` in `App.xaml.cs` Dependency Injection.
+- Created `SpellCheckerTests` unit test suite (92 total passing tests).
+
+### Sprint 27 - WPF Editor Spell Check Overlay & Toggle Switch 👈 **NEXT STEP**
+**Goal:** Highlight misspelled words in the editor with red squiggly underlines and add a toggle switch to enable/disable spell check on demand.
+- **Tasks:**
+  - Add `EnableLiveSpellCheck` property and toggle button in `EditorView.xaml`.
+  - Implement visual red/orange underline rendering for corrupted words.
+  - Add right-click context menu for quick spelling corrections.
+
+---
+
+## Phase 5: LLM-Powered Contextual Text Reconstruction (v3.0 Roadmap)
+
+### Sprint 28 - LLM Service Provider Integration (`IAiReconstructionService`)
+**Goal:** Connect local (Ollama / Local LLM) or cloud (Gemini / OpenAI API) LLMs to intelligently reconstruct corrupted OCR book paragraphs.
+
+### Sprint 29 - Chunked Async AI Processing Pipeline
+**Goal:** Automatically detect garbage/corrupted paragraph density and send chunks to LLM for asynchronous reconstruction.
+
+### Sprint 30 - AI Correction Assistant & Diff View
+**Goal:** Interactive side-by-side comparison (Original vs AI Reconstructed) in the editor with single-click paragraph approval.
+- **Editor & UI:** 3-Step Navigation Flow (Import -> Processing -> Editor), Search & Replace, Undo/Redo, Live Counters, Chapter Navigator Sidebar, Preset Manager, Batch Queue Processor.
