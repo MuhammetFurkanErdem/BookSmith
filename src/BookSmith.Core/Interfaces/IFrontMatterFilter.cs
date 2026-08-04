@@ -10,6 +10,12 @@ public interface IFrontMatterFilter
 {
     /// <summary>
     /// Scans the first pages for front-matter content, removes them, and returns
+    /// the remaining pages as a list.
+    /// </summary>
+    IReadOnlyList<string> FilterFrontMatterPages(IReadOnlyList<string> pages);
+
+    /// <summary>
+    /// Scans the first pages for front-matter content, removes them, and returns
     /// the remaining text joined ready for the next pipeline stage.
     /// </summary>
     /// <param name="pages">All pages extracted from the PDF.</param>

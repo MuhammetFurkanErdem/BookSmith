@@ -69,10 +69,10 @@ public class FrontMatterFilter : IFrontMatterFilter
         StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc />
-    public string FilterFrontMatter(IReadOnlyList<string> pages)
+    public IReadOnlyList<string> FilterFrontMatterPages(IReadOnlyList<string> pages)
     {
         if (pages == null || pages.Count == 0)
-            return string.Empty;
+            return Array.Empty<string>();
 
         int pagesToInspect = Math.Min(MaxPagesToScan, pages.Count);
         int lastFrontMatterPage = -1;
@@ -97,7 +97,14 @@ public class FrontMatterFilter : IFrontMatterFilter
         if (startPage >= pages.Count)
             startPage = 0; // Safety: never discard everything
 
-        return string.Join("\n\n", pages.Skip(startPage));
+        return pages.Skip(startPage).ToList();
+    }
+
+    /// <inheritdoc />
+    public string FilterFrontMatter(IReadOnlyList<string> pages)
+    {
+        var filteredPages = FilterFrontMatterPages(pages);
+        return string.Join("\n\n", filteredPages);
     }
 
     private bool IsFrontMatterPage(string pageText, int pageIndex)

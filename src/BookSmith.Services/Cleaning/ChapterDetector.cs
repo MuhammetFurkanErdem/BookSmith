@@ -25,9 +25,9 @@ public class ChapterDetector : IChapterDetector
         @"^(CHAPTER|Chapter|chapter)\s+(\d+|[IVXLCDM]+|[A-Za-z]+)$",
         RegexOptions.Multiline | RegexOptions.Compiled);
 
-    // Roman numerals standalone line (I through XCIX)
+    // Roman numerals standalone line (I through XCIX, at least 1 character)
     private static readonly Regex RomanPattern = new(
-        @"^(M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3}))$",
+        @"^(?=[MDCLXVI]+$)(M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3}))$",
         RegexOptions.Multiline | RegexOptions.Compiled);
 
     // Simple ordinal: "1.", "2.", "15." alone on a line (max 5 chars)
@@ -53,6 +53,9 @@ public class ChapterDetector : IChapterDetector
         {
             foreach (Match m in pattern.Matches(cleanedText))
             {
+                if (m.Length == 0)
+                    continue;
+
                 string trimmed = m.Value.Trim();
 
                 // Skip empty or too-long matches

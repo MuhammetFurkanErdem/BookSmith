@@ -36,19 +36,18 @@ public class BookPipeline : IBookPipeline
         string originalText = string.Join("\n\n", pages);
 
         // Step 1 (optional): Strip front-matter pages (publisher credits, ISBN, copyright)
-        string textAfterFrontMatter;
+        IReadOnlyList<string> pagesAfterFrontMatter;
         if (removeFrontMatter && _frontMatterFilter != null)
         {
-            textAfterFrontMatter = _frontMatterFilter.FilterFrontMatter(pages);
+            pagesAfterFrontMatter = _frontMatterFilter.FilterFrontMatterPages(pages);
         }
         else
         {
-            textAfterFrontMatter = string.Join("\n\n", pages);
+            pagesAfterFrontMatter = pages;
         }
 
-        // Step 2: Remove running headers & footers
-        var filteredPages = textAfterFrontMatter.Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
-        string textWithoutHeadersFooters = _textCleaner.RemoveHeadersAndFooters(filteredPages);
+        // Step 2: Remove running headers & footers on true page list
+        string textWithoutHeadersFooters = _textCleaner.RemoveHeadersAndFooters(pagesAfterFrontMatter);
 
         // Step 3: Full text cleaning (normalize, merge lines, TTS format, etc.)
         var cleaningResult = _textCleaner.Clean(textWithoutHeadersFooters);
