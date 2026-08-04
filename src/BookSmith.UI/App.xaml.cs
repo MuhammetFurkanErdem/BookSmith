@@ -44,6 +44,12 @@ public partial class App : Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        DispatcherUnhandledException += (s, args) =>
+        {
+            MessageBox.Show($"An unexpected UI error occurred:\n{args.Exception.Message}", "BookSmith Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
         await _host.StartAsync();
 
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
