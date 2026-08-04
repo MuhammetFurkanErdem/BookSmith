@@ -30,6 +30,12 @@ public class EpubExporter : IEpubExporter
         // Split content into chapters if chapter info is available
         var chapters = BuildChapters(options);
 
+        // Check if cover image is provided and exists
+        bool hasCover = !string.IsNullOrWhiteSpace(options.CoverImagePath) && File.Exists(options.CoverImagePath);
+        string coverExt = hasCover ? Path.GetExtension(options.CoverImagePath!).ToLowerInvariant() : "";
+        string coverMime = coverExt == ".png" ? "image/png" : "image/jpeg";
+        string coverFileName = coverExt == ".png" ? "cover.png" : "cover.jpg";
+
         using var fileStream = new FileStream(options.OutputPath, FileMode.Create, FileAccess.Write);
         using var archive = new ZipArchive(fileStream, ZipArchiveMode.Create);
 
@@ -49,32 +55,52 @@ public class EpubExporter : IEpubExporter
         string author = HttpUtility.HtmlEncode(options.Author ?? "Unknown Author");
         string language = HttpUtility.HtmlEncode(options.Language ?? "tr");
 
-        // 3. OEBPS/content.opf (dynamic manifest/spine per chapter)
-        WriteEntry(archive, "OEBPS/content.opf", BuildOpf(bookId, title, author, language, chapters));
+        // 3. Add Cover Image & Page if available
+        if (hasCover)
+        {
+            byte[] imageBytes = File.ReadAllBytes(options.CoverImagePath!);
+            WriteBinaryEntry(archive, $"OEBPS/{coverFileName}", imageBytes);
+            WriteEntry(archive, "OEBPS/cover.xhtml", BuildCoverXhtml(title, coverFileName));
+        }
 
-        // 4. OEBPS/toc.ncx (real chapter nav points)
-        WriteEntry(archive, "OEBPS/toc.ncx", BuildNcx(bookId, title, chapters));
+        // 4. OEBPS/content.opf (dynamic manifest/spine per chapter & cover)
+        WriteEntry(archive, "OEBPS/content.opf", BuildOpf(bookId, title, author, language, chapters, hasCover, coverFileName, coverMime));
 
-        // 5. OEBPS/style.css
-        WriteEntry(archive, "OEBPS/style.css", @"body {
+        // 5. OEBPS/toc.ncx (real chapter nav points)
+        WriteEntry(archive, "OEBPS/toc.ncx", BuildNcx(bookId, title, chapters, hasCover));
+
+        // 6. OEBPS/style.css (with user typography settings)
+        int fontSize = options.FontSizePt > 0 ? options.FontSizePt : 12;
+        double lineHeight = options.LineHeight > 0 ? options.LineHeight : 1.6;
+        string lineHeightStr = lineHeight.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+
+        WriteEntry(archive, "OEBPS/style.css", $@"body {{
     font-family: Georgia, 'Times New Roman', serif;
+    font-size: {fontSize}pt;
+    line-height: {lineHeightStr};
     margin: 5%;
-    line-height: 1.6;
-}
-h1 {
+}}
+h1 {{
     font-size: 1.4em;
     font-weight: bold;
     text-align: center;
     margin: 2em 0 1em 0;
     page-break-before: always;
-}
-p {
+}}
+p {{
     text-indent: 1.5em;
     margin-top: 0;
     margin-bottom: 0.5em;
-}");
+}}
+.cover-image {{
+    max-width: 100%;
+    max-height: 100vh;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}}");
 
-        // 6. Chapter XHTML files
+        // 7. Chapter XHTML files
         for (int i = 0; i < chapters.Count; i++)
         {
             string fileName = $"OEBPS/chapter{i + 1}.xhtml";
@@ -127,16 +153,48 @@ p {
     // ──────────────────────────────────────────────────────────────────
     // Content builders
 
-    private static string BuildOpf(string bookId, string title, string author, string language, List<ChapterContent> chapters)
+    private static string BuildCoverXhtml(string title, string coverFileName)
+    {
+        return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.1//EN"" ""http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"">
+<html xmlns=""http://www.w3.org/1999/xhtml"">
+<head>
+  <title>{title} - Cover</title>
+  <link rel=""stylesheet"" type=""text/css"" href=""style.css""/>
+  <style type=""text/css"">
+    body {{ margin: 0; padding: 0; text-align: center; }}
+    div {{ height: 100vh; display: flex; align-items: center; justify-content: center; }}
+  </style>
+</head>
+<body>
+  <div>
+    <img src=""{coverFileName}"" alt=""Cover Image"" class=""cover-image"" />
+  </div>
+</body>
+</html>";
+    }
+
+    private static string BuildOpf(string bookId, string title, string author, string language,
+        List<ChapterContent> chapters, bool hasCover, string coverFileName, string coverMime)
     {
         var manifest = new StringBuilder();
         var spine = new StringBuilder();
+
+        if (hasCover)
+        {
+            manifest.AppendLine($"    <item id=\"cover-image\" href=\"{coverFileName}\" media-type=\"{coverMime}\"/>");
+            manifest.AppendLine("    <item id=\"cover\" href=\"cover.xhtml\" media-type=\"application/xhtml+xml\"/>");
+            spine.AppendLine("    <itemref idref=\"cover\"/>");
+        }
+
         for (int i = 0; i < chapters.Count; i++)
         {
             string id = $"chapter{i + 1}";
             manifest.AppendLine($"    <item id=\"{id}\" href=\"{id}.xhtml\" media-type=\"application/xhtml+xml\"/>");
             spine.AppendLine($"    <itemref idref=\"{id}\"/>");
         }
+
+        string metaCover = hasCover ? "    <meta name=\"cover\" content=\"cover-image\"/>" : "";
 
         return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <package xmlns=""http://www.idpf.org/2007/opf"" unique-identifier=""BookId"" version=""2.0"">
@@ -145,7 +203,7 @@ p {
     <dc:creator opf:role=""aut"">{author}</dc:creator>
     <dc:language>{language}</dc:language>
     <dc:identifier id=""BookId"">{bookId}</dc:identifier>
-  </metadata>
+{metaCover}  </metadata>
   <manifest>
     <item id=""ncx"" href=""toc.ncx"" media-type=""application/x-dtbncx+xml""/>
     <item id=""style"" href=""style.css"" media-type=""text/css""/>
@@ -155,16 +213,28 @@ p {
 </package>";
     }
 
-    private static string BuildNcx(string bookId, string title, List<ChapterContent> chapters)
+    private static string BuildNcx(string bookId, string title, List<ChapterContent> chapters, bool hasCover)
     {
         var navPoints = new StringBuilder();
+        int playOrder = 1;
+
+        if (hasCover)
+        {
+            navPoints.AppendLine($@"    <navPoint id=""navPoint-{playOrder}"" playOrder=""{playOrder}"">
+      <navLabel><text>Cover</text></navLabel>
+      <content src=""cover.xhtml""/>
+    </navPoint>");
+            playOrder++;
+        }
+
         for (int i = 0; i < chapters.Count; i++)
         {
             string chapterTitle = HttpUtility.HtmlEncode(chapters[i].Title);
-            navPoints.AppendLine($@"    <navPoint id=""navPoint-{i + 1}"" playOrder=""{i + 1}"">
+            navPoints.AppendLine($@"    <navPoint id=""navPoint-{playOrder}"" playOrder=""{playOrder}"">
       <navLabel><text>{chapterTitle}</text></navLabel>
       <content src=""chapter{i + 1}.xhtml""/>
     </navPoint>");
+            playOrder++;
         }
 
         return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
@@ -221,5 +291,13 @@ p {
         var entry = archive.CreateEntry(entryName, level);
         using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
         writer.Write(content);
+    }
+
+    private static void WriteBinaryEntry(ZipArchive archive, string entryName, byte[] data,
+        CompressionLevel level = CompressionLevel.Optimal)
+    {
+        var entry = archive.CreateEntry(entryName, level);
+        using var stream = entry.Open();
+        stream.Write(data, 0, data.Length);
     }
 }

@@ -48,6 +48,12 @@ public class EditorViewModel : ViewModelBase
     private int _wordCount = 0;
     private int _lineCount = 0;
 
+    // EPUB Customization State
+    private string _coverImagePath = string.Empty;
+    private string _authorName = "Unknown Author";
+    private int _fontSizePt = 12;
+    private bool _isEpubPanelVisible = false;
+
     // Chapter navigation
     private IReadOnlyList<ChapterInfo> _chapters = Array.Empty<ChapterInfo>();
 
@@ -224,12 +230,51 @@ public class EditorViewModel : ViewModelBase
 
     #endregion
 
+    #region EPUB Export Settings Properties
+
+    public string CoverImagePath
+    {
+        get => _coverImagePath;
+        set
+        {
+            if (SetProperty(ref _coverImagePath, value))
+                OnPropertyChanged(nameof(HasCoverImage));
+        }
+    }
+
+    public bool HasCoverImage => !string.IsNullOrWhiteSpace(CoverImagePath) && File.Exists(CoverImagePath);
+
+    public string AuthorName
+    {
+        get => _authorName;
+        set => SetProperty(ref _authorName, value);
+    }
+
+    public int FontSizePt
+    {
+        get => _fontSizePt;
+        set => SetProperty(ref _fontSizePt, value);
+    }
+
+    public bool IsEpubPanelVisible
+    {
+        get => _isEpubPanelVisible;
+        set => SetProperty(ref _isEpubPanelVisible, value);
+    }
+
+    #endregion
+
     #region Commands
 
     public ICommand ExportEpubCommand { get; }
     public ICommand ExportTxtCommand { get; }
     public ICommand BackCommand { get; }
     public ICommand JumpToChapterCommand { get; }
+
+    // EPUB customization commands
+    public ICommand ToggleEpubPanelCommand { get; }
+    public ICommand SelectCoverCommand { get; }
+    public ICommand ClearCoverCommand { get; }
 
     // Search & Replace commands
     public ICommand ToggleSearchCommand { get; }
@@ -266,6 +311,11 @@ public class EditorViewModel : ViewModelBase
 
         // Chapter navigation command
         JumpToChapterCommand = new RelayCommand<ChapterInfo>(OnJumpToChapter);
+
+        // EPUB customization commands
+        ToggleEpubPanelCommand = new RelayCommand(() => IsEpubPanelVisible = !IsEpubPanelVisible);
+        SelectCoverCommand = new RelayCommand(OnSelectCover);
+        ClearCoverCommand = new RelayCommand(() => CoverImagePath = string.Empty);
     }
 
     #region Search & Replace Logic
@@ -445,10 +495,13 @@ public class EditorViewModel : ViewModelBase
                 var options = new EpubExportOptions
                 {
                     Title = string.IsNullOrWhiteSpace(FileName) ? "Cleaned Book" : Path.GetFileNameWithoutExtension(FileName),
-                    Author = "BookSmith",
+                    Author = string.IsNullOrWhiteSpace(AuthorName) ? "Unknown Author" : AuthorName,
                     Language = "tr",
                     OutputPath = saveFileDialog.FileName,
-                    ContentText = CleanedText
+                    ContentText = CleanedText,
+                    Chapters = Chapters,
+                    CoverImagePath = HasCoverImage ? CoverImagePath : null,
+                    FontSizePt = FontSizePt
                 };
 
                 if (_epubExporter != null)
@@ -508,6 +561,20 @@ public class EditorViewModel : ViewModelBase
     {
         if (chapter == null) return;
         ScrollToChapterRequested?.Invoke(chapter.CharOffset);
+    }
+
+    private void OnSelectCover()
+    {
+        var openFileDialog = new OpenFileDialog
+        {
+            Filter = "Image Files (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png",
+            Title = "Select Book Cover Image"
+        };
+
+        if (openFileDialog.ShowDialog() == true)
+        {
+            CoverImagePath = openFileDialog.FileName;
+        }
     }
 
     #endregion

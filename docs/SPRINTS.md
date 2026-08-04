@@ -245,13 +245,16 @@ All v1.0 core sprints are fully implemented, tested, and verified.
 
 ## Phase 3: Export Customization & User Presets
 
-### Sprint 23 - Advanced EPUB Styling & Cover Image Support 👈 **NEXT STEP**
+### Sprint 23 - Advanced EPUB Styling & Cover Image Support
+**Status:** ✅ Completed  
 **Goal:** Allow users to upload custom book cover images and customize EPUB font sizes/margins.
-- **Tasks:**
-  - Add cover image selection in UI.
-  - Package cover image into EPUB zip archive structure.
+- Added `CoverImagePath`, `FontSizePt`, and `LineHeight` to `EpubExportOptions`.
+- Updated `EpubExporter` to package cover image (`OEBPS/cover.jpg|png`), render `cover.xhtml`, update `content.opf` (cover meta, manifest, spine), and add Cover navPoint in `toc.ncx`.
+- Applied user typography preferences (font size & line height) to generated `OEBPS/style.css`.
+- Added EPUB customization panel to `EditorView.xaml` with Cover Image file picker, Author metadata input, Font Size selector, and "⚙ EPUB Settings" toggle button.
+- Created `EpubExporterTests` unit test suite (81 total passing tests).
 
-### Sprint 24 - Cleaning Presets & Batch Processing Engine (`IBatchProcessor`)
+### Sprint 24 - Cleaning Presets & Batch Processing Engine (`IBatchProcessor`) 👈 **NEXT STEP**
 **Goal:** Save custom cleaning rule presets and batch-process multiple PDF books in sequence.
 - **Tasks:**
   - Build preset manager (e.g., "ElevenReader Fiction", "Academic Papers").
