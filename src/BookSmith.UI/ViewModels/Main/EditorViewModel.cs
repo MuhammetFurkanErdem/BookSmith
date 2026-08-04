@@ -16,6 +16,7 @@ public class EditorViewModel : ViewModelBase
 {
     private readonly IEpubExporter? _epubExporter;
     private readonly ISpellChecker? _spellChecker;
+    private readonly IAiReconstructionService? _aiService;
 
     private string _fileName = string.Empty;
     private string _cleanedText = string.Empty;
@@ -62,6 +63,14 @@ public class EditorViewModel : ViewModelBase
     private bool _isSpellCheckEnabled = true;
     private int _currentAnomalyIndex = -1;
     private System.Collections.ObjectModel.ObservableCollection<MisspelledWord> _misspelledWords = new();
+
+    // AI Assistant & Diff Modal State
+    private AiModelConfig _aiConfig = new();
+    private bool _isAiPanelVisible = false;
+    private bool _isDiffModalVisible = false;
+    private string _originalDiffText = string.Empty;
+    private string _aiRestoredDiffText = string.Empty;
+    private string _aiStatusText = "Ollama Local (http://localhost:11434)";
 
     /// <summary>Event fired when a chapter is selected. Args: charOffset to scroll to.</summary>
     public event Action<int>? ScrollToChapterRequested;
@@ -266,6 +275,48 @@ public class EditorViewModel : ViewModelBase
 
     public int MisspelledWordCount => MisspelledWords.Count;
 
+    #endregion
+
+    #region AI Assistant & Diff Properties
+
+    public AiModelConfig AiConfig
+    {
+        get => _aiConfig;
+        set => SetProperty(ref _aiConfig, value);
+    }
+
+    public bool IsAiPanelVisible
+    {
+        get => _isAiPanelVisible;
+        set => SetProperty(ref _isAiPanelVisible, value);
+    }
+
+    public bool IsDiffModalVisible
+    {
+        get => _isDiffModalVisible;
+        set => SetProperty(ref _isDiffModalVisible, value);
+    }
+
+    public string OriginalDiffText
+    {
+        get => _originalDiffText;
+        set => SetProperty(ref _originalDiffText, value);
+    }
+
+    public string AiRestoredDiffText
+    {
+        get => _aiRestoredDiffText;
+        set => SetProperty(ref _aiRestoredDiffText, value);
+    }
+
+    public string AiStatusText
+    {
+        get => _aiStatusText;
+        set => SetProperty(ref _aiStatusText, value);
+    }
+
+    #endregion
+
     public int CurrentAnomalyIndex
     {
         get => _currentAnomalyIndex;
@@ -282,8 +333,6 @@ public class EditorViewModel : ViewModelBase
             return $"🔴 Spell Check: ON ({MisspelledWordCount} anomalies - {currentPos}/{MisspelledWordCount})";
         }
     }
-
-    #endregion
 
     #region EPUB Export Settings Properties
 
@@ -331,6 +380,13 @@ public class EditorViewModel : ViewModelBase
     public ICommand JumpToNextAnomalyCommand { get; }
     public ICommand ApplySuggestionCommand { get; }
 
+    // AI Assistant commands
+    public ICommand ToggleAiPanelCommand { get; }
+    public ICommand AiFixSelectionCommand { get; }
+    public ICommand AcceptAiFixCommand { get; }
+    public ICommand RejectAiFixCommand { get; }
+    public ICommand TestAiConnectionCommand { get; }
+
     // EPUB customization commands
     public ICommand ToggleEpubPanelCommand { get; }
     public ICommand SelectCoverCommand { get; }
@@ -349,10 +405,14 @@ public class EditorViewModel : ViewModelBase
 
     #endregion
 
-    public EditorViewModel(IEpubExporter? epubExporter = null, ISpellChecker? spellChecker = null)
+    public EditorViewModel(
+        IEpubExporter? epubExporter = null,
+        ISpellChecker? spellChecker = null,
+        IAiReconstructionService? aiService = null)
     {
         _epubExporter = epubExporter;
         _spellChecker = spellChecker;
+        _aiService = aiService;
 
         // Export commands
         ExportEpubCommand = new RelayCommand(OnExportEpub, () => !string.IsNullOrWhiteSpace(CleanedText));
@@ -382,6 +442,13 @@ public class EditorViewModel : ViewModelBase
         ToggleSpellCheckCommand = new RelayCommand(() => IsSpellCheckEnabled = !IsSpellCheckEnabled);
         JumpToNextAnomalyCommand = new RelayCommand(OnJumpToNextAnomaly, () => IsSpellCheckEnabled && MisspelledWordCount > 0);
         ApplySuggestionCommand = new RelayCommand<Tuple<string, string>>(OnApplySuggestion);
+
+        // AI Assistant commands
+        ToggleAiPanelCommand = new RelayCommand(() => IsAiPanelVisible = !IsAiPanelVisible);
+        AiFixSelectionCommand = new RelayCommand(OnAiFixSelection, () => !string.IsNullOrWhiteSpace(CleanedText));
+        AcceptAiFixCommand = new RelayCommand(OnAcceptAiFix);
+        RejectAiFixCommand = new RelayCommand(() => IsDiffModalVisible = false);
+        TestAiConnectionCommand = new RelayCommand(OnTestAiConnection);
     }
 
     #region Search & Replace Logic
@@ -725,14 +792,14 @@ public class EditorViewModel : ViewModelBase
             return;
         }
 
-        Task.Run(() =>
+        var app = System.Windows.Application.Current;
+        if (app != null)
         {
-            var list = _spellChecker.FindMisspelledWords(CleanedText);
-            var collection = new System.Collections.ObjectModel.ObservableCollection<MisspelledWord>(list);
-
-            var app = System.Windows.Application.Current;
-            if (app != null)
+            Task.Run(() =>
             {
+                var list = _spellChecker.FindMisspelledWords(CleanedText);
+                var collection = new System.Collections.ObjectModel.ObservableCollection<MisspelledWord>(list);
+
                 app.Dispatcher.InvokeAsync(() =>
                 {
                     MisspelledWords = collection;
@@ -740,15 +807,16 @@ public class EditorViewModel : ViewModelBase
                     OnPropertyChanged(nameof(CurrentAnomalyIndex));
                     OnPropertyChanged(nameof(SpellCheckStatusText));
                 });
-            }
-            else
-            {
-                MisspelledWords = collection;
-                _currentAnomalyIndex = -1;
-                OnPropertyChanged(nameof(CurrentAnomalyIndex));
-                OnPropertyChanged(nameof(SpellCheckStatusText));
-            }
-        });
+            });
+        }
+        else
+        {
+            var list = _spellChecker.FindMisspelledWords(CleanedText);
+            MisspelledWords = new System.Collections.ObjectModel.ObservableCollection<MisspelledWord>(list);
+            _currentAnomalyIndex = -1;
+            OnPropertyChanged(nameof(CurrentAnomalyIndex));
+            OnPropertyChanged(nameof(SpellCheckStatusText));
+        }
     }
 
     public void OnJumpToNextAnomaly()
@@ -784,6 +852,73 @@ public class EditorViewModel : ViewModelBase
             CleanedText = CleanedText.Substring(0, index) + replacement + CleanedText.Substring(index + target.Length);
             StatusText = $"Replaced '{target}' with '{replacement}'.";
         }
+    }
+
+    #endregion
+
+    #region AI Assistant Logic
+
+    private async void OnAiFixSelection()
+    {
+        if (_aiService == null)
+        {
+            StatusText = "AI Reconstruction Service is not initialized.";
+            return;
+        }
+
+        string targetText = !string.IsNullOrWhiteSpace(SelectedText) ? SelectedText : CleanedText;
+        if (string.IsNullOrWhiteSpace(targetText)) return;
+
+        // Take up to first 2,000 characters if full text selected
+        if (targetText.Length > 2000)
+            targetText = targetText.Substring(0, 2000);
+
+        OriginalDiffText = targetText;
+        StatusText = "🤖 Contacting LLM Model to restore text context...";
+
+        try
+        {
+            string restored = await _aiService.ReconstructParagraphAsync(targetText, AiConfig);
+            AiRestoredDiffText = restored;
+            IsDiffModalVisible = true;
+            StatusText = "🤖 AI Restoration complete. Review Diff modal to accept or reject.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"AI Service Error: {ex.Message}";
+        }
+    }
+
+    private void OnAcceptAiFix()
+    {
+        if (string.IsNullOrEmpty(OriginalDiffText) || string.IsNullOrEmpty(AiRestoredDiffText)) return;
+
+        int index = CleanedText.IndexOf(OriginalDiffText, StringComparison.Ordinal);
+        if (index >= 0)
+        {
+            CleanedText = CleanedText.Substring(0, index) + AiRestoredDiffText + CleanedText.Substring(index + OriginalDiffText.Length);
+            StatusText = "✔ Applied AI Context Restoration to text.";
+        }
+        else
+        {
+            CleanedText = AiRestoredDiffText;
+            StatusText = "✔ Applied AI Context Restoration to entire document.";
+        }
+
+        IsDiffModalVisible = false;
+    }
+
+    private async void OnTestAiConnection()
+    {
+        if (_aiService == null)
+        {
+            AiStatusText = "❌ Service not registered.";
+            return;
+        }
+
+        AiStatusText = "⏳ Testing AI Endpoint Connection...";
+        bool ok = await _aiService.TestConnectionAsync(AiConfig);
+        AiStatusText = ok ? "✅ Connection Successful!" : "❌ Endpoint unreachable or offline.";
     }
 
     #endregion

@@ -26,7 +26,8 @@ public class MainViewModel : ViewModelBase
         IEpubExporter? epubExporter = null,
         IPresetManager? presetManager = null,
         IBatchProcessor? batchProcessor = null,
-        ISpellChecker? spellChecker = null)
+        ISpellChecker? spellChecker = null,
+        IAiReconstructionService? aiService = null)
     {
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _bookPipeline = bookPipeline ?? throw new ArgumentNullException(nameof(bookPipeline));
@@ -34,7 +35,7 @@ public class MainViewModel : ViewModelBase
 
         ImportViewModel = new ImportViewModel(pdfReader, settingsService, presetManager);
         ProcessingViewModel = new ProcessingViewModel();
-        EditorViewModel = new EditorViewModel(epubExporter, spellChecker);
+        EditorViewModel = new EditorViewModel(epubExporter, spellChecker, aiService);
 
         ImportViewModel.OnStartCleaningRequested = () => _ = OnStartCleaningAsync();
         EditorViewModel.OnBackRequested = () => _navigationService.NavigateTo(ImportViewModel, 1);

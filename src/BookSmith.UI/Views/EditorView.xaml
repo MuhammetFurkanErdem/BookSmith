@@ -100,6 +100,10 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="8" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -122,6 +126,13 @@
                 <Button Grid.Column="10" Content="Next Anomaly ➔" Command="{Binding JumpToNextAnomalyCommand}" 
                         Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Jump to Next Detected Anomaly/Typo"
                         Style="{StaticResource PrimaryButtonStyle}"/>
+
+                <Button Grid.Column="12" Content="🤖 AI Fix Selection" Command="{Binding AiFixSelectionCommand}" 
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Use LLM AI to contextually repair selection/paragraph"
+                        Background="#2A1B3D" Foreground="#D19FFE" BorderBrush="#8E44AD" FontWeight="Bold"/>
+
+                <Button Grid.Column="14" Content="⚙ AI Settings" Command="{Binding ToggleAiPanelCommand}" 
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Configure LLM Endpoint (Ollama / OpenAI / Gemini)"/>
             </Grid>
         </Border>
 
@@ -357,6 +368,51 @@
             </Grid>
         </Border>
 
+        <!-- Row 3.5: AI Settings Panel (Conditional Visibility) -->
+        <Border Grid.Row="3" Background="#1E1E28" CornerRadius="6" Padding="12,10" Margin="0,0,0,8"
+                BorderBrush="#8E44AD" BorderThickness="1">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsAiPanelVisible}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="120" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="AI Endpoint:" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBox Grid.Column="2" Text="{Binding AiConfig.EndpointUrl, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="6,4" FontSize="11" Background="#121215" Foreground="{StaticResource TextPrimaryBrush}"
+                         BorderBrush="{StaticResource BorderBrush}"/>
+
+                <TextBlock Grid.Column="4" Text="Model Name:" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBox Grid.Column="6" Text="{Binding AiConfig.ModelName, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="6,4" FontSize="11" Background="#121215" Foreground="{StaticResource TextPrimaryBrush}"
+                         BorderBrush="{StaticResource BorderBrush}"/>
+
+                <Button Grid.Column="8" Content="Test Connection" Command="{Binding TestAiConnectionCommand}"
+                        Padding="10,4" FontSize="11" VerticalAlignment="Center"/>
+
+                <TextBlock Grid.Column="9" Text="{Binding AiStatusText}" VerticalAlignment="Center" HorizontalAlignment="Right"
+                           FontSize="11" Foreground="#D19FFE" FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+
         <!-- Row 6: Export Actions Bar -->
         <Grid Grid.Row="6">
             <Grid.ColumnDefinitions>
@@ -386,6 +442,69 @@
                     Command="{Binding ExportTxtCommand}"
                     Height="42"
                     FontSize="14" />
+        </Grid>
+
+        <!-- Overlay: Side-by-Side Diff Comparison View Modal -->
+        <Grid Grid.RowSpan="7" Background="#C0000000">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsDiffModalVisible}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <Border Background="#1E1E28" CornerRadius="10" Padding="20" Margin="40"
+                    BorderBrush="#8E44AD" BorderThickness="2" VerticalAlignment="Center" MaxHeight="600">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="🤖 AI Contextual Restoration — Review Changes"
+                               FontSize="16" FontWeight="Bold" Foreground="#D19FFE" Margin="0,0,0,16"/>
+
+                    <!-- Side-by-Side Comparison -->
+                    <Grid Grid.Row="1" Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: Original -->
+                        <Border Grid.Column="0" Background="#2B1518" CornerRadius="6" Padding="12" BorderBrush="#E74C3C" BorderThickness="1">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="❌ Original Corrupted Text" FontWeight="Bold" Foreground="#E74C3C" Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding OriginalDiffText}" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                                         Background="Transparent" Foreground="#FADBD8" BorderThickness="0" FontSize="13"/>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Right: AI Restored -->
+                        <Border Grid.Column="2" Background="#152B1E" CornerRadius="6" Padding="12" BorderBrush="#2ECC71" BorderThickness="1">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="✔ 🤖 AI Restored Clean Text" FontWeight="Bold" Foreground="#2ECC71" Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding AiRestoredDiffText, Mode=TwoWay}" IsReadOnly="False" TextWrapping="Wrap" AcceptsReturn="True"
+                                         Background="Transparent" Foreground="#D4EFDF" BorderThickness="0" FontSize="13"/>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Footer Actions -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="✕ Reject" Command="{Binding RejectAiFixCommand}"
+                                Padding="16,8" FontSize="13" Margin="0,0,12,0"/>
+                        <Button Content="✔ Accept &amp; Replace" Command="{Binding AcceptAiFixCommand}"
+                                Padding="20,8" FontSize="13" FontWeight="Bold" Style="{StaticResource PrimaryButtonStyle}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>
