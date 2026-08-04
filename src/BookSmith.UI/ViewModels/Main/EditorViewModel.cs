@@ -60,6 +60,7 @@ public class EditorViewModel : ViewModelBase
 
     // Live Spell Check State
     private bool _isSpellCheckEnabled = true;
+    private int _currentAnomalyIndex = -1;
     private System.Collections.ObjectModel.ObservableCollection<MisspelledWord> _misspelledWords = new();
 
     /// <summary>Event fired when a chapter is selected. Args: charOffset to scroll to.</summary>
@@ -265,9 +266,22 @@ public class EditorViewModel : ViewModelBase
 
     public int MisspelledWordCount => MisspelledWords.Count;
 
-    public string SpellCheckStatusText => IsSpellCheckEnabled
-        ? $"🔴 Spell Check: ON ({MisspelledWordCount} anomalies)"
-        : "⚪ Spell Check: OFF";
+    public int CurrentAnomalyIndex
+    {
+        get => _currentAnomalyIndex;
+        set => SetProperty(ref _currentAnomalyIndex, value);
+    }
+
+    public string SpellCheckStatusText
+    {
+        get
+        {
+            if (!IsSpellCheckEnabled) return "⚪ Spell Check: OFF";
+            if (MisspelledWordCount == 0) return "🔴 Spell Check: ON (0 anomalies)";
+            int currentPos = CurrentAnomalyIndex >= 0 ? CurrentAnomalyIndex + 1 : 0;
+            return $"🔴 Spell Check: ON ({MisspelledWordCount} anomalies - {currentPos}/{MisspelledWordCount})";
+        }
+    }
 
     #endregion
 
@@ -314,6 +328,7 @@ public class EditorViewModel : ViewModelBase
 
     // Spell Check commands
     public ICommand ToggleSpellCheckCommand { get; }
+    public ICommand JumpToNextAnomalyCommand { get; }
     public ICommand ApplySuggestionCommand { get; }
 
     // EPUB customization commands
@@ -365,6 +380,7 @@ public class EditorViewModel : ViewModelBase
 
         // Spell Check commands
         ToggleSpellCheckCommand = new RelayCommand(() => IsSpellCheckEnabled = !IsSpellCheckEnabled);
+        JumpToNextAnomalyCommand = new RelayCommand(OnJumpToNextAnomaly, () => IsSpellCheckEnabled && MisspelledWordCount > 0);
         ApplySuggestionCommand = new RelayCommand<Tuple<string, string>>(OnApplySuggestion);
     }
 
@@ -720,15 +736,32 @@ public class EditorViewModel : ViewModelBase
                 app.Dispatcher.InvokeAsync(() =>
                 {
                     MisspelledWords = collection;
+                    _currentAnomalyIndex = -1;
+                    OnPropertyChanged(nameof(CurrentAnomalyIndex));
                     OnPropertyChanged(nameof(SpellCheckStatusText));
                 });
             }
             else
             {
                 MisspelledWords = collection;
+                _currentAnomalyIndex = -1;
+                OnPropertyChanged(nameof(CurrentAnomalyIndex));
                 OnPropertyChanged(nameof(SpellCheckStatusText));
             }
         });
+    }
+
+    public void OnJumpToNextAnomaly()
+    {
+        if (!IsSpellCheckEnabled || MisspelledWords.Count == 0) return;
+
+        _currentAnomalyIndex = (_currentAnomalyIndex + 1) % MisspelledWords.Count;
+        OnPropertyChanged(nameof(CurrentAnomalyIndex));
+        OnPropertyChanged(nameof(SpellCheckStatusText));
+
+        var target = MisspelledWords[_currentAnomalyIndex];
+        FindNextRequested?.Invoke(target.StartIndex, target.Length);
+        StatusText = $"Jumped to anomaly {_currentAnomalyIndex + 1}/{MisspelledWords.Count}: '{target.Word}'";
     }
 
     public IReadOnlyList<string> GetSuggestionsForWord(string word)

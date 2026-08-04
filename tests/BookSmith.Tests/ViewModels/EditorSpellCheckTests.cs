@@ -38,4 +38,27 @@ public class EditorSpellCheckTests
 
         Assert.Equal("Geralt büyücü ile konuştu.", vm.CleanedText);
     }
+
+    [Fact]
+    public void EditorViewModel_JumpToNextAnomaly_FiresFindNextRequested()
+    {
+        var vm = CreateViewModel();
+        vm.CleanedText = "Güzel bir hikaye. kflzmesmeyonususturur ve bildiğiolkldkm.";
+
+        vm.RunSpellCheck();
+
+        int firedIndex = -1;
+        int firedLength = -1;
+        vm.FindNextRequested += (idx, len) =>
+        {
+            firedIndex = idx;
+            firedLength = len;
+        };
+
+        vm.JumpToNextAnomalyCommand.Execute(null);
+
+        Assert.True(firedIndex >= 0);
+        Assert.True(firedLength > 0);
+        Assert.Equal(0, vm.CurrentAnomalyIndex);
+    }
 }

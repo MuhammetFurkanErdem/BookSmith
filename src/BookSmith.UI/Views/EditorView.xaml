@@ -98,6 +98,8 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="8" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -116,6 +118,10 @@
                 <Button Grid.Column="8" Content="{Binding SpellCheckStatusText}" Command="{Binding ToggleSpellCheckCommand}" 
                         Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Toggle Live Spell Check ON/OFF"
                         Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold"/>
+
+                <Button Grid.Column="10" Content="Next Anomaly ➔" Command="{Binding JumpToNextAnomalyCommand}" 
+                        Padding="10,4" FontSize="12" Height="28" VerticalAlignment="Center" ToolTip="Jump to Next Detected Anomaly/Typo"
+                        Style="{StaticResource PrimaryButtonStyle}"/>
             </Grid>
         </Border>
 
